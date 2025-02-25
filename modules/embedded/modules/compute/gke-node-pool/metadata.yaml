@@ -1,21 +1,309 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/compute/gke-node-pool
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/compute/gke-node-pool
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.5"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: The project ID to host the cluster in.
+        varType: string
+        required: true
+      - name: cluster_id
+        description: projects/{{project}}/locations/{{location}}/clusters/{{cluster}}
+        varType: string
+        required: true
+      - name: zones
+        description: A list of zones to be used. Zones must be in region of cluster. If null, cluster zones will be inherited. Note `zones` not `zone`; does not work with `zone` deployment variable.
+        varType: list(string)
+      - name: name
+        description: |
+          The name of the node pool. If not set, automatically populated by machine type and module id (unique blueprint-wide) as suffix.
+          If setting manually, ensure a unique value across all gke-node-pools.
+        varType: string
+      - name: internal_ghpc_module_id
+        description: DO NOT SET THIS MANUALLY. Automatically populates with module id (unique blueprint-wide).
+        varType: string
+        required: true
+      - name: machine_type
+        description: The name of a Google Compute Engine machine type.
+        varType: string
+        defaultValue: c2-standard-60
+      - name: disk_size_gb
+        description: Size of disk for each node.
+        varType: number
+        defaultValue: 100
+      - name: disk_type
+        description: Disk type for each node.
+        varType: string
+      - name: enable_gcfs
+        description: Enable the Google Container Filesystem (GCFS). See [restrictions](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster#gcfs_config).
+        varType: bool
+        defaultValue: false
+      - name: enable_secure_boot
+        description: Enable secure boot for the nodes.  Keep enabled unless custom kernel modules need to be loaded. See [here](https://cloud.google.com/compute/shielded-vm/docs/shielded-vm#secure-boot) for more info.
+        varType: bool
+        defaultValue: true
+      - name: guest_accelerator
+        description: List of the type and count of accelerator cards attached to the instance.
+        varType: |-
+          list(object({
+              type  = optional(string)
+              count = optional(number, 0)
+              gpu_driver_installation_config = optional(object({
+                gpu_driver_version = string
+              }), { gpu_driver_version = "DEFAULT" })
+              gpu_partition_size = optional(string)
+              gpu_sharing_config = optional(object({
+                gpu_sharing_strategy       = string
+                max_shared_clients_per_gpu = number
+              }))
+            }))
+        defaultValue: []
+      - name: image_type
+        description: The default image type used by NAP once a new node pool is being created. Use either COS_CONTAINERD or UBUNTU_CONTAINERD.
+        varType: string
+        defaultValue: COS_CONTAINERD
+      - name: local_ssd_count_ephemeral_storage
+        description: |
+          The number of local SSDs to attach to each node to back ephemeral storage.  
+          Uses NVMe interfaces.  Must be supported by `machine_type`.
+          When set to null,  default value either is [set based on machine_type](https://cloud.google.com/compute/docs/disks/local-ssd#choose_number_local_ssds) or GKE decides about default value.
+          [See above](#local-ssd-storage) for more info.
+        varType: number
+      - name: local_ssd_count_nvme_block
+        description: |
+          The number of local SSDs to attach to each node to back block storage.  
+          Uses NVMe interfaces.  Must be supported by `machine_type`.
+          When set to null,  default value either is [set based on machine_type](https://cloud.google.com/compute/docs/disks/local-ssd#choose_number_local_ssds) or GKE decides about default value.
+          [See above](#local-ssd-storage) for more info.
+            
+        varType: number
+      - name: autoscaling_total_min_nodes
+        description: Total minimum number of nodes in the NodePool.
+        varType: number
+        defaultValue: 0
+      - name: autoscaling_total_max_nodes
+        description: Total maximum number of nodes in the NodePool.
+        varType: number
+        defaultValue: 1000
+      - name: static_node_count
+        description: The static number of nodes in the node pool. If set, autoscaling will be disabled.
+        varType: number
+      - name: auto_upgrade
+        description: Whether the nodes will be automatically upgraded.
+        varType: bool
+        defaultValue: false
+      - name: threads_per_core
+        description: |
+          Sets the number of threads per physical core. By setting threads_per_core
+          to 2, Simultaneous Multithreading (SMT) is enabled extending the total number
+          of virtual cores. For example, a machine of type c2-standard-60 will have 60
+          virtual cores with threads_per_core equal to 2. With threads_per_core equal
+          to 1 (SMT turned off), only the 30 physical cores will be available on the VM.
+
+          The default value of \"0\" will turn off SMT for supported machine types, and
+          will fall back to GCE defaults for unsupported machine types (t2d, shared-core
+          instances, or instances with less than 2 vCPU).
+
+          Disabling SMT can be more performant in many HPC workloads, therefore it is
+          disabled by default where compatible.
+
+          null = SMT configuration will use the GCE defaults for the machine type
+          0 = SMT will be disabled where compatible (default)
+          1 = SMT will always be disabled (will fail on incompatible machine types)
+          2 = SMT will always be enabled (will fail on incompatible machine types)
+        varType: number
+        defaultValue: 0
+      - name: spot
+        description: Provision VMs using discounted Spot pricing, allowing for preemption
+        varType: bool
+        defaultValue: false
+      - name: compact_placement
+        description: "DEPRECATED: Use `placement_policy`"
+        varType: bool
+      - name: placement_policy
+        description: |
+          Group placement policy to use for the node pool's nodes. `COMPACT` is the only supported value for `type` currently. `name` is the name of the placement policy.
+          It is assumed that the specified policy exists. To create a placement policy refer to https://cloud.google.com/sdk/gcloud/reference/compute/resource-policies/create/group-placement.
+          Note: Placement policies have the [following](https://cloud.google.com/compute/docs/instances/placement-policies-overview#restrictions-compact-policies) restrictions.
+        varType: |-
+          object({
+              policy_type = string
+              policy_name = optional(string)
+            })
+        defaultValue:
+          policy_type: ""
+      - name: service_account_email
+        description: Service account e-mail address to use with the node pool
+        varType: string
+      - name: service_account_scopes
+        description: Scopes to to use with the node pool.
+        varType: set(string)
+        defaultValue:
+          - https://www.googleapis.com/auth/cloud-platform
+      - name: taints
+        description: Taints to be applied to the system node pool.
+        varType: |-
+          list(object({
+              key    = string
+              value  = any
+              effect = string
+            }))
+        defaultValue: []
+      - name: labels
+        description: GCE resource labels to be applied to resources. Key-value pairs.
+        varType: map(string)
+        required: true
+      - name: kubernetes_labels
+        description: |
+          Kubernetes labels to be applied to each node in the node group. Key-value pairs. 
+          (The `kubernetes.io/` and `k8s.io/` prefixes are reserved by Kubernetes Core components and cannot be specified)
+        varType: map(string)
+      - name: timeout_create
+        description: Timeout for creating a node pool
+        varType: string
+      - name: timeout_update
+        description: Timeout for updating a node pool
+        varType: string
+      - name: total_min_nodes
+        description: "DEPRECATED: Use autoscaling_total_min_nodes."
+        varType: number
+      - name: total_max_nodes
+        description: "DEPRECATED: Use autoscaling_total_max_nodes."
+        varType: number
+      - name: service_account
+        description: "DEPRECATED: use service_account_email and scopes."
+        varType: |-
+          object({
+              email  = string,
+              scopes = set(string)
+            })
+      - name: additional_networks
+        description: Additional network interface details for GKE, if any. Providing additional networks adds additional node networks to the node pool
+        varType: |-
+          list(object({
+              network            = string
+              subnetwork         = string
+              subnetwork_project = string
+              network_ip         = string
+              nic_type           = string
+              stack_type         = string
+              queue_count        = number
+              access_config = list(object({
+                nat_ip       = string
+                network_tier = string
+              }))
+              ipv6_access_config = list(object({
+                network_tier = string
+              }))
+              alias_ip_range = list(object({
+                ip_cidr_range         = string
+                subnetwork_range_name = string
+              }))
+            }))
+        defaultValue: []
+      - name: reservation_affinity
+        description: |
+          Reservation resource to consume. When targeting SPECIFIC_RESERVATION, specific_reservations needs be specified.
+          Even though specific_reservations is a list, only one reservation is allowed by the NodePool API.
+          It is assumed that the specified reservation exists and has available capacity.
+          For a shared reservation, specify the project_id as well in which it was created.
+          To create a reservation refer to https://cloud.google.com/compute/docs/instances/reservations-single-project and https://cloud.google.com/compute/docs/instances/reservations-shared
+        varType: |-
+          object({
+              consume_reservation_type = string
+              specific_reservations = optional(list(object({
+                name    = string
+                project = optional(string)
+              })))
+            })
+        defaultValue:
+          consume_reservation_type: NO_RESERVATION
+          specific_reservations: []
+      - name: host_maintenance_interval
+        description: Specifies the frequency of planned maintenance events.
+        varType: string
+        defaultValue: ""
+      - name: initial_node_count
+        description: The initial number of nodes for the pool. In regional clusters, this is the number of nodes per zone. Changing this setting after node pool creation will not make any effect. It cannot be set with static_node_count and must be set to a value between autoscaling_total_min_nodes and autoscaling_total_max_nodes.
+        varType: number
+      - name: gke_version
+        description: GKE version
+        varType: string
+        required: true
+      - name: max_pods_per_node
+        description: The maximum number of pods per node in this node pool. This will force replacement.
+        varType: number
+      - name: upgrade_settings
+        description: |
+          Defines node pool upgrade settings. It is highly recommended that you define all max_surge and max_unavailable.
+          If max_surge is not specified, it would be set to a default value of 0.
+          If max_unavailable is not specified, it would be set to a default value of 1.  
+        varType: |-
+          object({
+              strategy        = string
+              max_surge       = optional(number)
+              max_unavailable = optional(number)
+            })
+        defaultValue:
+          max_surge: 0
+          max_unavailable: 1
+          strategy: SURGE
+      - name: run_workload_script
+        description: Whether execute the script to create a sample workload and inject rxdm sidecar into workload. Currently, implemented for A3-Highgpu and A3-Megagpu only.
+        varType: bool
+        defaultValue: true
+    outputs:
+      - name: allocatable_cpu_per_node
+        description: Number of CPUs available for scheduling pods on each node.
+      - name: allocatable_gpu_per_node
+        description: Number of GPUs available for scheduling pods on each node.
+      - name: has_gpu
+        description: Boolean value indicating whether nodes in the pool are configured with GPUs.
+      - name: instructions
+        description: Instructions for submitting the sample GPUDirect enabled job.
+      - name: node_pool_name
+        description: Name of the node pool.
+      - name: static_gpu_count
+        description: Total number of GPUs in the node pool. Available only for static node pools.
+      - name: tolerations
+        description: Tolerations needed for a pod to be scheduled on this node pool.
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - container.googleapis.com
-ghpc:
-  inject_module_id: internal_ghpc_module_id
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: gavinbunney/kubectl
+        version: ">= 1.7.0"
+      - source: hashicorp/google
+        version: "> 5"
+      - source: hashicorp/google-beta
+        version: "> 5"
+      - source: hashicorp/http
+        version: ~> 3.0
+      - source: hashicorp/null
+        version: ~> 3.0

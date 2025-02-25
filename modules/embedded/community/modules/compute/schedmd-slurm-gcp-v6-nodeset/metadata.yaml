@@ -1,21 +1,388 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/compute/schedmd-slurm-gcp-v-6-nodeset
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/compute/schedmd-slurm-gcp-v6-nodeset
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.4"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: name
+        description: |
+          Name of the nodeset. Automatically populated by the module id if not set.
+          If setting manually, ensure a unique value across all nodesets.
+        varType: string
+        required: true
+      - name: project_id
+        description: Project ID to create resources in.
+        varType: string
+        required: true
+      - name: node_conf
+        description: Map of Slurm node line configuration.
+        varType: map(any)
+        defaultValue: {}
+      - name: node_count_static
+        description: Number of nodes to be statically created.
+        varType: number
+        defaultValue: 0
+      - name: node_count_dynamic_max
+        description: Maximum number of auto-scaling nodes allowed in this partition.
+        varType: number
+        defaultValue: 10
+      - name: instance_template
+        description: "DEPRECATED: Instance template can not be specified for compute nodes."
+        varType: string
+      - name: machine_type
+        description: Compute Platform machine type to use for this partition compute nodes.
+        varType: string
+        defaultValue: c2-standard-60
+      - name: metadata
+        description: Metadata, provided as a map.
+        varType: map(string)
+        defaultValue: {}
+      - name: instance_image
+        description: |
+          Defines the image that will be used in the Slurm node group VM instances.
+
+          Expected Fields:
+          name: The name of the image. Mutually exclusive with family.
+          family: The image family to use. Mutually exclusive with name.
+          project: The project where the image is hosted.
+
+          For more information on creating custom images that comply with Slurm on GCP
+          see the "Slurm on GCP Custom Images" section in docs/vm-images.md.
+        varType: map(string)
+        defaultValue:
+          family: slurm-gcp-6-8-hpc-rocky-linux-8
+          project: schedmd-slurm-public
+      - name: instance_image_custom
+        description: |
+          A flag that designates that the user is aware that they are requesting
+          to use a custom and potentially incompatible image for this Slurm on
+          GCP module.
+
+          If the field is set to false, only the compatible families and project
+          names will be accepted.  The deployment will fail with any other image
+          family or name.  If set to true, no checks will be done.
+
+          See: https://goo.gle/hpc-slurm-images
+        varType: bool
+        defaultValue: false
+      - name: allow_automatic_updates
+        description: |
+          If false, disables automatic system package updates on the created instances.  This feature is
+          only available on supported images (or images derived from them).  For more details, see
+          https://cloud.google.com/compute/docs/instances/create-hpc-vm#disable_automatic_updates
+        varType: bool
+        defaultValue: true
+      - name: tags
+        description: Network tag list.
+        varType: list(string)
+        defaultValue: []
+      - name: disk_type
+        description: Boot disk type, can be either hyperdisk-balanced, pd-ssd, pd-standard, pd-balanced, or pd-extreme.
+        varType: string
+        defaultValue: pd-standard
+      - name: disk_size_gb
+        description: Size of boot disk to create for the partition compute nodes.
+        varType: number
+        defaultValue: 50
+      - name: disk_auto_delete
+        description: Whether or not the boot disk should be auto-deleted.
+        varType: bool
+        defaultValue: true
+      - name: disk_labels
+        description: Labels specific to the boot disk. These will be merged with var.labels.
+        varType: map(string)
+        defaultValue: {}
+      - name: additional_disks
+        description: Configurations of additional disks to be included on the partition nodes.
+        varType: |-
+          list(object({
+              disk_name    = string
+              device_name  = string
+              disk_size_gb = number
+              disk_type    = string
+              disk_labels  = map(string)
+              auto_delete  = bool
+              boot         = bool
+            }))
+        defaultValue: []
+      - name: enable_confidential_vm
+        description: "Enable the Confidential VM configuration. Note: the instance image must support option."
+        varType: bool
+        defaultValue: false
+      - name: enable_shielded_vm
+        description: "Enable the Shielded VM configuration. Note: the instance image must support option."
+        varType: bool
+        defaultValue: false
+      - name: shielded_instance_config
+        description: |
+          Shielded VM configuration for the instance. Note: not used unless
+          enable_shielded_vm is 'true'.
+          - enable_integrity_monitoring : Compare the most recent boot measurements to the
+            integrity policy baseline and return a pair of pass/fail results depending on
+            whether they match or not.
+          - enable_secure_boot : Verify the digital signature of all boot components, and
+            halt the boot process if signature verification fails.
+          - enable_vtpm : Use a virtualized trusted platform module, which is a
+            specialized computer chip you can use to encrypt objects like keys and
+            certificates.
+        varType: |-
+          object({
+              enable_integrity_monitoring = bool
+              enable_secure_boot          = bool
+              enable_vtpm                 = bool
+            })
+        defaultValue:
+          enable_integrity_monitoring: true
+          enable_secure_boot: true
+          enable_vtpm: true
+      - name: enable_oslogin
+        description: |
+          Enables Google Cloud os-login for user login and authentication for VMs.
+          See https://cloud.google.com/compute/docs/oslogin
+        varType: bool
+        defaultValue: true
+      - name: can_ip_forward
+        description: Enable IP forwarding, for NAT instances for example.
+        varType: bool
+        defaultValue: false
+      - name: enable_smt
+        description: Enables Simultaneous Multi-Threading (SMT) on instance.
+        varType: bool
+        defaultValue: false
+      - name: labels
+        description: Labels to add to partition compute instances. Key-value pairs.
+        varType: map(string)
+        defaultValue: {}
+      - name: min_cpu_platform
+        description: The name of the minimum CPU platform that you want the instance to use.
+        varType: string
+      - name: on_host_maintenance
+        description: |
+          Instance availability Policy.
+
+          Note: Placement groups are not supported when on_host_maintenance is set to
+          "MIGRATE" and will be deactivated regardless of the value of
+          enable_placement. To support enable_placement, ensure on_host_maintenance is
+          set to "TERMINATE".
+        varType: string
+        defaultValue: TERMINATE
+      - name: guest_accelerator
+        description: List of the type and count of accelerator cards attached to the instance.
+        varType: |-
+          list(object({
+              type  = string,
+              count = number
+            }))
+        defaultValue: []
+      - name: preemptible
+        description: Should use preemptibles to burst.
+        varType: bool
+        defaultValue: false
+      - name: service_account_email
+        description: Service account e-mail address to attach to the compute instances.
+        varType: string
+      - name: service_account_scopes
+        description: Scopes to attach to the compute instances.
+        varType: set(string)
+        defaultValue:
+          - https://www.googleapis.com/auth/cloud-platform
+      - name: service_account
+        description: "DEPRECATED: Use `service_account_email` and `service_account_scopes` instead."
+        varType: |-
+          object({
+              email  = string
+              scopes = set(string)
+            })
+      - name: enable_spot_vm
+        description: Enable the partition to use spot VMs (https://cloud.google.com/spot-vms).
+        varType: bool
+        defaultValue: false
+      - name: spot_instance_config
+        description: Configuration for spot VMs.
+        varType: |-
+          object({
+              termination_action = string
+            })
+      - name: bandwidth_tier
+        description: "  Configures the network interface card and the maximum egress bandwidth for VMs.\n  - Setting `platform_default` respects the Google Cloud Platform API default values for networking.\n  - Setting `virtio_enabled` explicitly selects the VirtioNet network adapter.\n  - Setting `gvnic_enabled` selects the gVNIC network adapter (without Tier 1 high bandwidth).\n  - Setting `tier_1_enabled` selects both the gVNIC adapter and Tier 1 high bandwidth networking.\n  - Note: both gVNIC and Tier 1 networking require a VM image with gVNIC support as well as specific VM families and shapes.\n  - See [official docs](https://cloud.google.com/compute/docs/networking/configure-vm-with-high-bandwidth-configuration) for more details.\n"
+        varType: string
+        defaultValue: platform_default
+      - name: enable_public_ips
+        description: If set to true. The node group VMs will have a random public IP assigned to it. Ignored if access_config is set.
+        varType: bool
+        defaultValue: false
+      - name: disable_public_ips
+        description: "DEPRECATED: Use `enable_public_ips` instead."
+        varType: bool
+      - name: enable_placement
+        description: Enable placement groups.
+        varType: bool
+        defaultValue: true
+      - name: region
+        description: The default region for Cloud resources.
+        varType: string
+        required: true
+      - name: zone
+        description: Zone in which to create compute VMs. Additional zones in the same region can be specified in var.zones.
+        varType: string
+        required: true
+      - name: zones
+        description: |
+          Additional zones in which to allow creation of partition nodes. Google Cloud
+          will find zone based on availability, quota and reservations.
+          Should not be set if SPECIFIC reservation is used.
+        varType: set(string)
+        defaultValue: []
+      - name: zone_target_shape
+        description: |
+          Strategy for distributing VMs across zones in a region.
+          ANY
+            GCE picks zones for creating VM instances to fulfill the requested number of VMs
+            within present resource constraints and to maximize utilization of unused zonal
+            reservations.
+          ANY_SINGLE_ZONE (default)
+            GCE always selects a single zone for all the VMs, optimizing for resource quotas,
+            available reservations and general capacity.
+          BALANCED
+            GCE prioritizes acquisition of resources, scheduling VMs in zones where resources
+            are available while distributing VMs as evenly as possible across allowed zones
+            to minimize the impact of zonal failure.
+        varType: string
+        defaultValue: ANY_SINGLE_ZONE
+      - name: subnetwork_self_link
+        description: Subnet to deploy to.
+        varType: string
+        required: true
+      - name: additional_networks
+        description: Additional network interface details for GCE, if any.
+        varType: |-
+          list(object({
+              network            = optional(string)
+              subnetwork         = string
+              subnetwork_project = optional(string)
+              network_ip         = optional(string, "")
+              nic_type           = optional(string)
+              stack_type         = optional(string)
+              queue_count        = optional(number)
+              access_config = optional(list(object({
+                nat_ip       = string
+                network_tier = string
+              })), [])
+              ipv6_access_config = optional(list(object({
+                network_tier = string
+              })), [])
+              alias_ip_range = optional(list(object({
+                ip_cidr_range         = string
+                subnetwork_range_name = string
+              })), [])
+            }))
+        defaultValue: []
+      - name: access_config
+        description: Access configurations, i.e. IPs via which the VM instance can be accessed via the Internet.
+        varType: |-
+          list(object({
+              nat_ip       = string
+              network_tier = string
+            }))
+        defaultValue: []
+      - name: reservation_name
+        description: |
+          Name of the reservation to use for VM resources, should be in one of the following formats:
+          - projects/PROJECT_ID/reservations/RESERVATION_NAME[/SUFF/IX]
+          - RESERVATION_NAME[/SUFF/IX]
+
+          Must be a "SPECIFIC" reservation
+          Set to empty string if using no reservation or automatically-consumed reservations
+        varType: string
+        defaultValue: ""
+      - name: future_reservation
+        description: |
+          If set, will make use of the future reservation for the nodeset. Input can be either the future reservation name or its selfLink in the format 'projects/PROJECT_ID/zones/ZONE/futureReservations/FUTURE_RESERVATION_NAME'.
+          See https://cloud.google.com/compute/docs/instances/future-reservations-overview
+        varType: string
+        defaultValue: ""
+      - name: maintenance_interval
+        description: |
+          Sets the maintenance interval for instances in this nodeset.
+          See https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance#maintenance_interval.
+        varType: string
+      - name: startup_script
+        description: |
+          Startup script used by VMs in this nodeset.
+          NOTE: will be executed after `compute_startup_script` defined on controller module.
+        varType: string
+        defaultValue: "# no-op"
+      - name: network_storage
+        description: An array of network attached storage mounts to be configured on nodes.
+        varType: |-
+          list(object({
+              server_ip     = string,
+              remote_mount  = string,
+              local_mount   = string,
+              fs_type       = string,
+              mount_options = string,
+            }))
+        defaultValue: []
+      - name: instance_properties
+        description: |
+          Override the instance properties. Used to test features not supported by Slurm GCP,
+          recommended for advanced usage only.
+          See https://cloud.google.com/compute/docs/reference/rest/v1/regionInstances/bulkInsert
+          If any sub-field (e.g. scheduling) is set, it will override the values computed by
+          SlurmGCP and ignoring values of provided vars.
+        varType: any
+      - name: enable_maintenance_reservation
+        description: Enables slurm reservation for scheduled maintenance.
+        varType: bool
+        defaultValue: false
+      - name: enable_opportunistic_maintenance
+        description: On receiving maintenance notification, maintenance will be performed as soon as nodes becomes idle.
+        varType: bool
+        defaultValue: false
+      - name: dws_flex
+        description: " If set and `enabled = true`, will utilize the DWS Flex Start to provision nodes.\n See: https://cloud.google.com/blog/products/compute/introducing-dynamic-workload-scheduler\n Options:\n - enable: Enable DWS Flex Start\n - max_run_duration: Maximum duration in seconds for the job to run, should not exceed 1,209,600 (2 weeks).\n - use_job_duration: Use the job duration to determine the max_run_duration, if job duration is not set, max_run_duration will be used.\n\nLimitations:\n - CAN NOT be used with reservations;\n - CAN NOT be used with placement groups;\n - If `use_job_duration` is enabled nodeset can be used in \"exclusive\" partitions only\n\n"
+        varType: |-
+          object({
+              enabled          = optional(bool, true)
+              max_run_duration = optional(number, 1209600) # 2 weeks
+              use_job_duration = optional(bool, false)
+            })
+        defaultValue:
+          enabled: false
+      - name: placement_max_distance
+        description: Maximum distance between nodes in the placement group. Requires enable_placement to be true. Values must be supported by the chosen machine type.
+        varType: number
+    outputs:
+      - name: nodeset
+        description: Details of the nodeset. Typically used as input to `schedmd-slurm-gcp-v6-partition`.
   requirements:
-    services: []
-ghpc:
-  inject_module_id: name
-  has_to_be_used: true
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 5.11"

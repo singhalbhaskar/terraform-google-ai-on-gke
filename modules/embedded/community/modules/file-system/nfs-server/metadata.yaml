@@ -1,19 +1,132 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/file-system/nfs-server
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/file-system/nfs-server
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.14.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which the HPC deployment will be created
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Name of the HPC deployment, used as name of the NFS instance if no name is specified.
+        varType: string
+        required: true
+      - name: name
+        description: The resource name of the instance.
+        varType: string
+      - name: zone
+        description: The zone name where the nfs instance located in.
+        varType: string
+        required: true
+      - name: disk_size
+        description: Storage size gb
+        varType: number
+        defaultValue: "100"
+      - name: type
+        description: The service tier of the instance.
+        varType: string
+        defaultValue: pd-ssd
+      - name: image
+        description: "DEPRECATED: The VM image used by the nfs server"
+        varType: string
+      - name: instance_image
+        description: |
+          The VM image used by the nfs server.
+
+          Expected Fields:
+          name: The name of the image. Mutually exclusive with family.
+          family: The image family to use. Mutually exclusive with name.
+          project: The project where the image is hosted.
+        varType: map(string)
+        defaultValue:
+          family: hpc-rocky-linux-8
+          project: cloud-hpc-image-public
+      - name: auto_delete_disk
+        description: Whether or not the nfs disk should be auto-deleted
+        varType: bool
+        defaultValue: false
+      - name: network_self_link
+        description: The self link of the network to attach the nfs VM.
+        varType: string
+        defaultValue: default
+      - name: subnetwork_self_link
+        description: The self link of the subnetwork to attach the nfs VM.
+        varType: string
+      - name: machine_type
+        description: Type of the VM instance to use
+        varType: string
+        defaultValue: n2d-standard-2
+      - name: labels
+        description: Labels to add to the NFS instance. Key-value pairs.
+        varType: map(string)
+        required: true
+      - name: metadata
+        description: Metadata, provided as a map
+        varType: map(string)
+        defaultValue: {}
+      - name: service_account
+        description: Service Account for the NFS Server
+        varType: string
+      - name: scopes
+        description: Scopes to apply to the controller
+        varType: list(string)
+        defaultValue:
+          - https://www.googleapis.com/auth/cloud-platform
+      - name: local_mounts
+        description: Mountpoint for this NFS compute instance
+        varType: list(string)
+        defaultValue:
+          - /data
+    outputs:
+      - name: install_nfs_client
+        description: Script for installing NFS client
+      - name: install_nfs_client_runner
+        description: Runner to install NFS client using the startup-script module
+      - name: mount_runner
+        description: |
+          Runner to mount the file-system using an ansible playbook. The startup-script
+          module will automatically handle installation of ansible.
+          - id: example-startup-script
+            source: modules/scripts/startup-script
+            settings:
+              runners:
+              - $(your-fs-id.mount_runner)
+          ...
+      - name: network_storage
+        description: export of all desired folder directories
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - compute.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 3.83"
+      - source: hashicorp/null
+        version: ">= 3.0"
+      - source: hashicorp/random
+        version: ~> 3.0

@@ -1,20 +1,259 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/compute/schedmd-slurm-gcp-v-6-partition
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/compute/schedmd-slurm-gcp-v6-partition
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.3"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: partition_name
+        description: The name of the slurm partition.
+        varType: string
+        required: true
+      - name: partition_conf
+        description: |
+          Slurm partition configuration as a map.
+          See https://slurm.schedmd.com/slurm.conf.html#SECTION_PARTITION-CONFIGURATION
+        varType: map(string)
+        defaultValue: {}
+      - name: is_default
+        description: |
+          Sets this partition as the default partition by updating the partition_conf.
+          If "Default" is already set in partition_conf, this variable will have no effect.
+        varType: bool
+        defaultValue: false
+      - name: exclusive
+        description: |
+          Exclusive job access to nodes. When set to true nodes execute single job and are deleted
+          after job exits. If set to false, multiple jobs can be scheduled on one node.
+        varType: bool
+        defaultValue: true
+      - name: nodeset
+        description: |
+          A list of nodesets.
+          For type definition see community/modules/scheduler/schedmd-slurm-gcp-v6-controller/variables.tf::nodeset
+        varType: |-
+          list(object({
+              node_count_static      = optional(number, 0)
+              node_count_dynamic_max = optional(number, 1)
+              node_conf              = optional(map(string), {})
+              nodeset_name           = string
+              additional_disks = optional(list(object({
+                disk_name    = optional(string)
+                device_name  = optional(string)
+                disk_size_gb = optional(number)
+                disk_type    = optional(string)
+                disk_labels  = optional(map(string), {})
+                auto_delete  = optional(bool, true)
+                boot         = optional(bool, false)
+              })), [])
+              bandwidth_tier                   = optional(string, "platform_default")
+              can_ip_forward                   = optional(bool, false)
+              disable_smt                      = optional(bool, false)
+              disk_auto_delete                 = optional(bool, true)
+              disk_labels                      = optional(map(string), {})
+              disk_size_gb                     = optional(number)
+              disk_type                        = optional(string)
+              enable_confidential_vm           = optional(bool, false)
+              enable_placement                 = optional(bool, false)
+              enable_oslogin                   = optional(bool, true)
+              enable_shielded_vm               = optional(bool, false)
+              enable_maintenance_reservation   = optional(bool, false)
+              enable_opportunistic_maintenance = optional(bool, false)
+              gpu = optional(object({
+                count = number
+                type  = string
+              }))
+              dws_flex = object({
+                enabled          = bool
+                max_run_duration = number
+                use_job_duration = bool
+              })
+              labels                   = optional(map(string), {})
+              machine_type             = optional(string)
+              maintenance_interval     = optional(string)
+              instance_properties_json = string
+              metadata                 = optional(map(string), {})
+              min_cpu_platform         = optional(string)
+              network_tier             = optional(string, "STANDARD")
+              network_storage = optional(list(object({
+                server_ip             = string
+                remote_mount          = string
+                local_mount           = string
+                fs_type               = string
+                mount_options         = string
+                client_install_runner = optional(map(string))
+                mount_runner          = optional(map(string))
+              })), [])
+              on_host_maintenance = optional(string)
+              preemptible         = optional(bool, false)
+              region              = optional(string)
+              service_account = optional(object({
+                email  = optional(string)
+                scopes = optional(list(string), ["https://www.googleapis.com/auth/cloud-platform"])
+              }))
+              shielded_instance_config = optional(object({
+                enable_integrity_monitoring = optional(bool, true)
+                enable_secure_boot          = optional(bool, true)
+                enable_vtpm                 = optional(bool, true)
+              }))
+              source_image_family  = optional(string)
+              source_image_project = optional(string)
+              source_image         = optional(string)
+              subnetwork_self_link = string
+              additional_networks = optional(list(object({
+                network            = string
+                subnetwork         = string
+                subnetwork_project = string
+                network_ip         = string
+                nic_type           = string
+                stack_type         = string
+                queue_count        = number
+                access_config = list(object({
+                  nat_ip       = string
+                  network_tier = string
+                }))
+                ipv6_access_config = list(object({
+                  network_tier = string
+                }))
+                alias_ip_range = list(object({
+                  ip_cidr_range         = string
+                  subnetwork_range_name = string
+                }))
+              })))
+              access_config = optional(list(object({
+                nat_ip       = string
+                network_tier = string
+              })))
+              spot               = optional(bool, false)
+              tags               = optional(list(string), [])
+              termination_action = optional(string)
+              reservation_name   = optional(string)
+              future_reservation = string
+              startup_script = optional(list(object({
+                filename = string
+              content = string })), [])
+
+              zone_target_shape = string
+              zone_policy_allow = set(string)
+              zone_policy_deny  = set(string)
+            }))
+        defaultValue: []
+      - name: nodeset_tpu
+        description: Define TPU nodesets, as a list.
+        varType: |-
+          list(object({
+              node_count_static      = optional(number, 0)
+              node_count_dynamic_max = optional(number, 5)
+              nodeset_name           = string
+              enable_public_ip       = optional(bool, false)
+              node_type              = string
+              accelerator_config = optional(object({
+                topology = string
+                version  = string
+                }), {
+                topology = ""
+                version  = ""
+              })
+              tf_version   = string
+              preemptible  = optional(bool, false)
+              preserve_tpu = optional(bool, false)
+              zone         = string
+              data_disks   = optional(list(string), [])
+              docker_image = optional(string, "")
+              network_storage = optional(list(object({
+                server_ip     = string
+                remote_mount  = string
+                local_mount   = string
+                fs_type       = string
+                mount_options = string
+              })), [])
+              subnetwork = string
+              service_account = optional(object({
+                email  = optional(string)
+                scopes = optional(list(string), ["https://www.googleapis.com/auth/cloud-platform"])
+              }))
+              project_id = string
+              reserved   = optional(string, false)
+            }))
+        defaultValue: []
+      - name: nodeset_dyn
+        description: Defines dynamic nodesets, as a list.
+        varType: |-
+          list(object({
+              nodeset_name    = string
+              nodeset_feature = string
+            }))
+        defaultValue: []
+      - name: resume_timeout
+        description: |
+          Maximum time permitted (in seconds) between when a node resume request is issued and when the node is actually available for use.
+          If null is given, then a smart default will be chosen depending on nodesets in partition.
+          This sets 'ResumeTimeout' in partition_conf.
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_ResumeTimeout_1 for details.
+        varType: number
+        defaultValue: 300
+      - name: suspend_time
+        description: |
+          Nodes which remain idle or down for this number of seconds will be placed into power save mode by SuspendProgram.
+          This sets 'SuspendTime' in partition_conf.
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_SuspendTime_1 for details.
+          NOTE: use value -1 to exclude partition from suspend.
+          NOTE 2: if `var.exclusive` is set to true (default), nodes are deleted immediately after job finishes.
+        varType: number
+        defaultValue: 300
+      - name: suspend_timeout
+        description: |
+          Maximum time permitted (in seconds) between when a node suspend request is issued and when the node is shutdown.
+          If null is given, then a smart default will be chosen depending on nodesets in partition.
+          This sets 'SuspendTimeout' in partition_conf.
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_SuspendTimeout_1 for details.
+        varType: number
+      - name: network_storage
+        description: DEPRECATED
+        varType: |-
+          list(object({
+              server_ip             = string,
+              remote_mount          = string,
+              local_mount           = string,
+              fs_type               = string,
+              mount_options         = string,
+              client_install_runner = map(string)
+              mount_runner          = map(string)
+            }))
+        defaultValue: []
+    outputs:
+      - name: nodeset
+        description: Details of a nodesets in this partition
+      - name: nodeset_dyn
+        description: Details of a dynamic nodesets in this partition
+      - name: nodeset_tpu
+        description: Details of a TPU nodesets in this partition
+      - name: partitions
+        description: Details of a slurm partition
   requirements:
-    services: []
-ghpc:
-  has_to_be_used: true
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

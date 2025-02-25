@@ -1,19 +1,168 @@
-# Copyright 2024 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/network/multivpc
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/network/multivpc
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.4.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which the HPC deployment will be created
+        varType: string
+        required: true
+      - name: deployment_name
+        description: The name of the current deployment
+        varType: string
+        required: true
+      - name: region
+        description: The default region for Cloud resources
+        varType: string
+        required: true
+      - name: network_name_prefix
+        description: The base name of the vpcs and their subnets, will be appended with a sequence number
+        varType: string
+        defaultValue: ""
+      - name: network_count
+        description: The number of vpc nettworks to create
+        varType: number
+        defaultValue: 4
+      - name: global_ip_address_range
+        description: IP address range (CIDR) that will span entire set of VPC networks
+        varType: string
+        defaultValue: 172.16.0.0/12
+      - name: subnetwork_cidr_suffix
+        description: The size, in CIDR suffix notation, for each network (e.g. 24 for 172.16.0.0/24); changing this will destroy every network.
+        varType: number
+        defaultValue: 16
+      - name: mtu
+        description: "The network MTU (default: 8896). Recommended values: 0 (use Compute Engine default), 1460 (default outside HPC environments), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively."
+        varType: number
+        defaultValue: 8896
+      - name: network_routing_mode
+        description: The network dynamic routing mode
+        varType: string
+        defaultValue: REGIONAL
+      - name: network_description
+        description: An optional description of this resource (changes will trigger resource destroy/create)
+        varType: string
+        defaultValue: ""
+      - name: ips_per_nat
+        description: The number of IP addresses to allocate for each regional Cloud NAT (set to 0 to disable NAT)
+        varType: number
+        defaultValue: 2
+      - name: delete_default_internet_gateway_routes
+        description: If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted
+        varType: bool
+        defaultValue: false
+      - name: enable_iap_ssh_ingress
+        description: Enable a firewall rule to allow SSH access using IAP tunnels
+        varType: bool
+        defaultValue: true
+      - name: enable_iap_rdp_ingress
+        description: Enable a firewall rule to allow Windows Remote Desktop Protocol access using IAP tunnels
+        varType: bool
+        defaultValue: false
+      - name: enable_iap_winrm_ingress
+        description: Enable a firewall rule to allow Windows Remote Management (WinRM) access using IAP tunnels
+        varType: bool
+        defaultValue: false
+      - name: enable_internal_traffic
+        description: Enable a firewall rule to allow all internal TCP, UDP, and ICMP traffic within the network
+        varType: bool
+        defaultValue: true
+      - name: extra_iap_ports
+        description: A list of TCP ports for which to create firewall rules that enable IAP for TCP forwarding (use dedicated enable_iap variables for standard ports)
+        varType: list(string)
+        defaultValue: []
+      - name: allowed_ssh_ip_ranges
+        description: A list of CIDR IP ranges from which to allow ssh access
+        varType: list(string)
+        defaultValue: []
+      - name: firewall_rules
+        description: List of firewall rules
+        varType: any
+        defaultValue: []
+      - name: network_interface_defaults
+        description: The template of the network settings to be used on all vpcs.
+        varType: |-
+          object({
+              network            = optional(string)
+              subnetwork         = optional(string)
+              subnetwork_project = optional(string)
+              network_ip         = optional(string, "")
+              nic_type           = optional(string, "GVNIC")
+              stack_type         = optional(string, "IPV4_ONLY")
+              queue_count        = optional(string)
+              access_config = optional(list(object({
+                nat_ip                 = string
+                network_tier           = string
+                public_ptr_domain_name = string
+              })), [])
+              ipv6_access_config = optional(list(object({
+                network_tier           = string
+                public_ptr_domain_name = string
+              })), [])
+              alias_ip_range = optional(list(object({
+                ip_cidr_range         = string
+                subnetwork_range_name = string
+              })), [])
+            })
+        defaultValue:
+          access_config: []
+          alias_ip_range: []
+          ipv6_access_config: []
+          network: null
+          network_ip: ""
+          nic_type: GVNIC
+          queue_count: null
+          stack_type: IPV4_ONLY
+          subnetwork: null
+          subnetwork_project: null
+      - name: network_profile
+        description: |
+          A full or partial URL of the network profile to apply to this network.
+          This field can be set only at resource creation time. For example, the
+          following are valid URLs:
+          - https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}
+          - projects/{projectId}/global/networkProfiles/{network_profile_name}}
+        varType: string
+    outputs:
+      - name: additional_networks
+        description: Network interfaces for each subnetwork created by this module
+      - name: network_ids
+        description: IDs of the new VPC network
+      - name: network_names
+        description: Names of the new VPC networks
+      - name: network_self_links
+        description: Self link of the new VPC network
+      - name: subnetwork_addresses
+        description: IP address range of the primary subnetwork
+      - name: subnetwork_names
+        description: Names of the subnetwork created in each network
+      - name: subnetwork_self_links
+        description: Self link of the primary subnetwork
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - compute.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

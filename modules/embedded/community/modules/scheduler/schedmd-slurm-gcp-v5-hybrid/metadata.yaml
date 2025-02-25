@@ -1,20 +1,270 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/scheduler/schedmd-slurm-gcp-v-5-hybrid
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/scheduler/schedmd-slurm-gcp-v5-hybrid
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.14.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project ID to create resources in.
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Name of the deployment.
+        varType: string
+        required: true
+      - name: slurm_cluster_name
+        description: |
+          Cluster name, used for resource naming and slurm accounting. If not provided
+          it will default to the first 8 characters of the deployment name (removing
+          any invalid characters).
+        varType: string
+      - name: enable_devel
+        description: Enables development mode. Not for production use.
+        varType: bool
+        defaultValue: false
+      - name: enable_cleanup_compute
+        description: |
+          Enables automatic cleanup of compute nodes and resource policies (e.g.
+          placement groups) managed by this module, when cluster is destroyed.
+          NOTE: Requires Python and script dependencies.
+          *WARNING*: Toggling this may impact the running workload. Deployed compute nodes
+          may be destroyed and their jobs will be requeued.
+        varType: bool
+        defaultValue: false
+      - name: enable_cleanup_subscriptions
+        description: |
+          Enables automatic cleanup of pub/sub subscriptions managed by this module, when
+          cluster is destroyed.
+          NOTE: Requires Python and script dependencies.
+          *WARNING*: Toggling this may temporarily impact var.enable_reconfigure behavior.
+        varType: bool
+        defaultValue: false
+      - name: enable_reconfigure
+        description: |
+          Enables automatic Slurm reconfigure on when Slurm configuration changes (e.g.
+          slurm.conf.tpl, partition details). Compute instances and resource policies
+          (e.g. placement groups) will be destroyed to align with new configuration.
+          NOTE: Requires Python and Google Pub/Sub API.
+          *WARNING*: Toggling this will impact the running workload. Deployed compute nodes
+          will be destroyed and their jobs will be requeued.
+        varType: bool
+        defaultValue: false
+      - name: enable_bigquery_load
+        description: |
+          Enables loading of cluster job usage into big query.
+          NOTE: Requires Google Bigquery API.
+        varType: bool
+        defaultValue: false
+      - name: enable_slurm_gcp_plugins
+        description: |
+          Enables calling hooks in scripts/slurm_gcp_plugins during cluster resume and suspend.
+        varType: bool
+        defaultValue: false
+      - name: slurm_control_host
+        description: |
+          The short, or long, hostname of the machine where Slurm control daemon is
+          executed (i.e. the name returned by the command "hostname -s").
+          This value is passed to slurm.conf such that:
+          SlurmctldHost={var.slurm_control_host}\({var.slurm_control_addr}\)
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_SlurmctldHost
+        varType: string
+        required: true
+      - name: slurm_control_host_port
+        description: |
+          The port number that the Slurm controller, slurmctld, listens to for work.
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_SlurmctldPort
+        varType: string
+      - name: slurm_control_addr
+        description: |
+          The IP address or a name by which the address can be identified.
+          This value is passed to slurm.conf such that:
+          SlurmctldHost={var.slurm_control_host}\({var.slurm_control_addr}\)
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_SlurmctldHost
+        varType: string
+      - name: compute_startup_script
+        description: Startup script used by the compute VMs.
+        varType: string
+        defaultValue: ""
+      - name: compute_startup_scripts_timeout
+        description: |
+          The timeout (seconds) applied to the compute_startup_script. If
+          any script exceeds this timeout, then the instance setup process is considered
+          failed and handled accordingly.
+
+          NOTE: When set to 0, the timeout is considered infinite and thus disabled.
+        varType: number
+        defaultValue: 300
+      - name: prolog_scripts
+        description: |
+          List of scripts to be used for Prolog. Programs for the slurmd to execute
+          whenever it is asked to run a job step from a new job allocation.
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_Prolog.
+        varType: |-
+          list(object({
+              filename = string
+              content  = string
+            }))
+        defaultValue: []
+      - name: epilog_scripts
+        description: |
+          List of scripts to be used for Epilog. Programs for the slurmd to execute
+          on every node when a user's job completes.
+          See https://slurm.schedmd.com/slurm.conf.html#OPT_Epilog.
+        varType: |-
+          list(object({
+              filename = string
+              content  = string
+            }))
+        defaultValue: []
+      - name: disable_default_mounts
+        description: |
+          Disable default global network storage from the controller: /usr/local/etc/slurm,
+          /etc/munge, /home, /apps.
+          If these are disabled, the slurm etc and munge dirs must be added manually,
+          or some other mechanism must be used to synchronize the slurm conf files
+          and the munge key across the cluster.
+        varType: bool
+        defaultValue: false
+      - name: network_storage
+        description: An array of network attached storage mounts to be configured on all instances.
+        varType: |-
+          list(object({
+              server_ip             = string,
+              remote_mount          = string,
+              local_mount           = string,
+              fs_type               = string,
+              mount_options         = string,
+              client_install_runner = map(string)
+              mount_runner          = map(string)
+            }))
+        defaultValue: []
+      - name: partition
+        description: Cluster partitions as a list.
+        varType: |-
+          list(object({
+              compute_list = list(string)
+              partition = object({
+                enable_job_exclusive    = bool
+                enable_placement_groups = bool
+                network_storage = list(object({
+                  server_ip     = string
+                  remote_mount  = string
+                  local_mount   = string
+                  fs_type       = string
+                  mount_options = string
+                }))
+                partition_conf    = map(string)
+                partition_feature = string
+                partition_name    = string
+                partition_nodes = map(object({
+                  bandwidth_tier         = string
+                  node_count_dynamic_max = number
+                  node_count_static      = number
+                  enable_spot_vm         = bool
+                  group_name             = string
+                  instance_template      = string
+                  node_conf              = map(string)
+                  access_config = list(object({
+                    nat_ip       = string
+                    network_tier = string
+                  }))
+                  spot_instance_config = object({
+                    termination_action = string
+                  })
+                }))
+                partition_startup_scripts_timeout = number
+                subnetwork                        = string
+                zone_policy_allow                 = list(string)
+                zone_policy_deny                  = list(string)
+                zone_target_shape                 = string
+              })
+            }))
+        defaultValue: []
+      - name: google_app_cred_path
+        description: Path to Google Application Credentials.
+        varType: string
+      - name: slurm_bin_dir
+        description: |
+          Path to directory of Slurm binary commands (e.g. scontrol, sinfo). If 'null',
+          then it will be assumed that binaries are in $PATH.
+        varType: string
+      - name: slurm_log_dir
+        description: Directory where Slurm logs to.
+        varType: string
+        defaultValue: /var/log/slurm
+      - name: cloud_parameters
+        description: cloud.conf options.
+        varType: |-
+          object({
+              no_comma_params = bool
+              resume_rate     = number
+              resume_timeout  = number
+              suspend_rate    = number
+              suspend_timeout = number
+            })
+        defaultValue:
+          no_comma_params: false
+          resume_rate: 0
+          resume_timeout: 300
+          suspend_rate: 0
+          suspend_timeout: 300
+      - name: output_dir
+        description: |
+          Directory where this module will write its files to. These files include:
+          cloud.conf; cloud_gres.conf; config.yaml; resume.py; suspend.py; and util.py.
+          If not specified explicitly, this will also be used as the default value
+          for the `install_dir` variable.
+        varType: string
+      - name: install_dir
+        description: |
+          Directory where the hybrid configuration directory will be installed on the
+          on-premise controller. This updates the prefix path for the resume and
+          suspend scripts in the generated `cloud.conf` file. The value defaults to
+          output_dir if not specified.
+        varType: string
+      - name: munge_mount
+        description: |
+          Remote munge mount for compute and login nodes to acquire the munge.key.
+
+          By default, the munge mount server will be assumed to be the
+          `var.slurm_control_host` (or `var.slurm_control_addr` if non-null) when
+          `server_ip=null`.
+        varType: |-
+          object({
+              server_ip     = string
+              remote_mount  = string
+              fs_type       = string
+              mount_options = string
+            })
+        defaultValue:
+          fs_type: nfs
+          mount_options: ""
+          remote_mount: /etc/munge/
+          server_ip: null
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - compute.googleapis.com
-    - pubsub.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

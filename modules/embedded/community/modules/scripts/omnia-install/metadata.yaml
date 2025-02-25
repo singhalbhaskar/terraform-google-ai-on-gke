@@ -1,18 +1,84 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/scripts/omnia-install
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/scripts/omnia-install
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.14.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: manager_ips
+        description: IPs of the Omnia manager nodes
+        varType: list(string)
+        required: true
+      - name: compute_ips
+        description: IPs of the Omnia compute nodes
+        varType: list(string)
+        required: true
+      - name: install_dir
+        description: |
+          Path where omnia will be installed, defaults to omnia user home directory (/home/omnia).
+          If specifying this path, please make sure it is on a shared file system, accessible by all omnia nodes.
+        varType: string
+        defaultValue: ""
+      - name: omnia_username
+        description: Name of the user that installs omnia
+        varType: string
+        defaultValue: omnia
+      - name: slurm_uid
+        description: User ID of the slurm user
+        varType: number
+        defaultValue: 981
+    outputs:
+      - name: copy_inventory_runner
+        description: Runner to copy the inventory to the omnia manager using the startup-script module
+      - name: install_omnia_runner
+        description: |
+          Runner to install Omnia using an ansible playbook. The startup-script module
+          will automatically handle installation of ansible.
+          - id: example-startup-script
+            source: modules/scripts/startup-script
+            settings:
+              runners:
+              - $(your-omnia-id.install_omnia_runner)
+          ...
+      - name: inventory_file
+        description: The inventory file for the omnia cluster
+      - name: omnia_user_warning
+        description: Warn developers that the omnia user was created with sudo permissions
+      - name: setup_omnia_node_runner
+        description: |
+          Runner to create the omnia user using an ansible playbook. The startup-script
+          module will automatically handle installation of ansible.
+          - id: example-startup-script
+            source: modules/scripts/startup-script
+            settings:
+              runners:
+              - $(your-omnia-id.setup_omnia_node_runner)
+          ...
+      - name: setup_omnia_node_script
+        description: An ansible script that adds the user that install omnia
   requirements:
-    services: []
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

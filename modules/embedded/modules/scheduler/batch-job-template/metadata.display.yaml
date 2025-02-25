@@ -1,0 +1,94 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/scheduler/batch-job-template-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/scheduler/batch-job-template
+  ui:
+    input:
+      variables:
+        allow_automatic_updates:
+          name: allow_automatic_updates
+          title: Allow Automatic Updates
+        deployment_name:
+          name: deployment_name
+          title: Deployment Name
+        enable_public_ips:
+          name: enable_public_ips
+          title: Enable Public Ips
+        gcloud_version:
+          name: gcloud_version
+          title: Gcloud Version
+        image:
+          name: image
+          title: Image
+        instance_image:
+          name: instance_image
+          title: Instance Image
+        instance_template:
+          name: instance_template
+          title: Instance Template
+        job_filename:
+          name: job_filename
+          title: Job Filename
+        job_id:
+          name: job_id
+          title: Job Id
+        labels:
+          name: labels
+          title: Labels
+        log_policy:
+          name: log_policy
+          title: Log Policy
+        machine_type:
+          name: machine_type
+          title: Machine Type
+        mpi_mode:
+          name: mpi_mode
+          title: Mpi Mode
+        native_batch_mounting:
+          name: native_batch_mounting
+          title: Native Batch Mounting
+        network_storage:
+          name: network_storage
+          title: Network Storage
+        on_host_maintenance:
+          name: on_host_maintenance
+          title: On Host Maintenance
+        project_id:
+          name: project_id
+          title: Project Id
+        region:
+          name: region
+          title: Region
+        runnable:
+          name: runnable
+          title: Runnable
+        runnables:
+          name: runnables
+          title: Runnables
+        service_account:
+          name: service_account
+          title: Service Account
+        startup_script:
+          name: startup_script
+          title: Startup Script
+        submit:
+          name: submit
+          title: Submit
+        subnetwork:
+          name: subnetwork
+          title: Subnetwork
+        task_count:
+          name: task_count
+          title: Task Count
+        task_count_per_node:
+          name: task_count_per_node
+          title: Task Count Per Node

@@ -1,18 +1,110 @@
-# Copyright 2024 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/file-system/gke-storage
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/file-system/gke-storage
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: The project ID to host the cluster in.
+        varType: string
+        required: true
+      - name: cluster_id
+        description: An identifier for the GKE cluster in the format `projects/{{project}}/locations/{{location}}/clusters/{{cluster}}`
+        varType: string
+        required: true
+      - name: labels
+        description: GCE resource labels to be applied to resources. Key-value pairs.
+        varType: map(string)
+        required: true
+      - name: storage_type
+        description: |
+          The type of [GKE supported storage options](https://cloud.google.com/kubernetes-engine/docs/concepts/storage-overview)
+          to used. This module currently support dynamic provisioning for the below storage options
+          - Parallelstore
+          - Hyperdisk-balanced
+          - Hyperdisk-throughput
+          - Hyperdisk-extreme
+        varType: string
+        required: true
+      - name: access_mode
+        description: |
+          The access mode that the volume can be mounted to the host/pod. More details in [Access Modes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes)
+          Valid access modes:
+          - ReadWriteOnce
+          - ReadOnlyMany
+          - ReadWriteMany
+          - ReadWriteOncePod
+        varType: string
+        required: true
+      - name: sc_volume_binding_mode
+        description: |
+          Indicates when volume binding and dynamic provisioning should occur and how PersistentVolumeClaims should be provisioned and bound.
+          Supported value:
+          - Immediate
+          - WaitForFirstConsumer
+        varType: string
+        defaultValue: WaitForFirstConsumer
+      - name: sc_reclaim_policy
+        description: |
+          Indicate whether to keep the dynamically provisioned PersistentVolumes of this storage class after the bound PersistentVolumeClaim is deleted.
+          [More details about reclaiming](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#reclaiming)
+          Supported value:
+          - Retain
+          - Delete
+        varType: string
+        required: true
+      - name: sc_topology_zones
+        description: Zone location that allow the volumes to be dynamically provisioned.
+        varType: list(string)
+      - name: pvc_count
+        description: How many PersistentVolumeClaims that will be created
+        varType: number
+        defaultValue: 1
+      - name: pv_mount_path
+        description: Path within the container at which the volume should be mounted. Must not contain ':'.
+        varType: string
+        defaultValue: /data
+      - name: mount_options
+        description: Controls the mountOptions for dynamically provisioned PersistentVolumes of this storage class.
+        varType: string
+      - name: capacity_gb
+        description: The storage capacity with which to create the persistent volume.
+        varType: number
+        required: true
+      - name: private_vpc_connection_peering
+        description: |
+          The name of the VPC Network peering connection.
+          If using new VPC, please use community/modules/network/private-service-access to create private-service-access and
+          If using existing VPC with private-service-access enabled, set this manually follow [user guide](https://cloud.google.com/parallelstore/docs/vpc).
+        varType: string
+    outputs:
+      - name: persistent_volume_claims
+        description: An object that describes a k8s PVC created by this module.
   requirements:
-    services: []
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

@@ -1,20 +1,197 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/compute/htcondor-execute-point
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/compute/htcondor-execute-point
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.1"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which the HTCondor execute points will be created
+        varType: string
+        required: true
+      - name: region
+        description: The region in which HTCondor execute points will be created
+        varType: string
+        required: true
+      - name: zones
+        description: Zone(s) in which execute points may be created. If not supplied, will default to all zones in var.region.
+        varType: list(string)
+        defaultValue: []
+      - name: distribution_policy_target_shape
+        description: Target shape across zones for instance group managing execute points
+        varType: string
+        defaultValue: ANY
+      - name: deployment_name
+        description: Cluster Toolkit deployment name. HTCondor cloud resource names will include this value.
+        varType: string
+        required: true
+      - name: labels
+        description: Labels to add to HTConodr execute points
+        varType: map(string)
+        required: true
+      - name: machine_type
+        description: Machine type to use for HTCondor execute points
+        varType: string
+        defaultValue: n2-standard-4
+      - name: execute_point_runner
+        description: A list of Toolkit runners for configuring an HTCondor execute point
+        varType: list(map(string))
+        defaultValue: []
+      - name: network_storage
+        description: An array of network attached storage mounts to be configured
+        varType: |-
+          list(object({
+              server_ip             = string,
+              remote_mount          = string,
+              local_mount           = string,
+              fs_type               = string,
+              mount_options         = string,
+              client_install_runner = map(string)
+              mount_runner          = map(string)
+            }))
+        defaultValue: []
+      - name: instance_image
+        description: |
+          HTCondor execute point VM image
+
+          Expected Fields:
+          name: The name of the image. Mutually exclusive with family.
+          family: The image family to use. Mutually exclusive with name.
+          project: The project where the image is hosted.
+        varType: map(string)
+        defaultValue:
+          family: hpc-rocky-linux-8
+          project: cloud-hpc-image-public
+      - name: allow_automatic_updates
+        description: |
+          If false, disables automatic system package updates on the created instances.  This feature is
+          only available on supported images (or images derived from them).  For more details, see
+          https://cloud.google.com/compute/docs/instances/create-hpc-vm#disable_automatic_updates
+        varType: bool
+        defaultValue: true
+      - name: execute_point_service_account_email
+        description: Service account for HTCondor execute point (e-mail format)
+        varType: string
+        required: true
+      - name: service_account_scopes
+        description: Scopes by which to limit service account attached to central manager.
+        varType: set(string)
+        defaultValue:
+          - https://www.googleapis.com/auth/cloud-platform
+      - name: network_self_link
+        description: The self link of the network HTCondor execute points will join
+        varType: string
+        defaultValue: default
+      - name: subnetwork_self_link
+        description: The self link of the subnetwork HTCondor execute points will join
+        varType: string
+      - name: target_size
+        description: Initial size of the HTCondor execute point pool; set to null (default) to avoid Terraform management of size.
+        varType: number
+      - name: max_size
+        description: Maximum size of the HTCondor execute point pool.
+        varType: number
+        defaultValue: 5
+      - name: min_idle
+        description: Minimum number of idle VMs in the HTCondor pool (if pool reaches var.max_size, this minimum is not guaranteed); set to ensure jobs beginning run more quickly.
+        varType: number
+        defaultValue: 0
+      - name: metadata
+        description: Metadata to add to HTCondor execute points
+        varType: map(string)
+        defaultValue: {}
+      - name: enable_oslogin
+        description: Enable or Disable OS Login with "ENABLE" or "DISABLE". Set to "INHERIT" to inherit project OS Login setting.
+        varType: string
+        defaultValue: ENABLE
+      - name: spot
+        description: Provision VMs using discounted Spot pricing, allowing for preemption
+        varType: bool
+        defaultValue: false
+      - name: disk_size_gb
+        description: Boot disk size in GB
+        varType: number
+        defaultValue: 100
+      - name: disk_type
+        description: Disk type for template
+        varType: string
+        defaultValue: pd-balanced
+      - name: windows_startup_ps1
+        description: Startup script to run at boot-time for Windows-based HTCondor execute points
+        varType: list(string)
+        defaultValue: []
+      - name: central_manager_ips
+        description: List of IP addresses of HTCondor Central Managers
+        varType: list(string)
+        required: true
+      - name: htcondor_bucket_name
+        description: Name of HTCondor configuration bucket
+        varType: string
+        required: true
+      - name: guest_accelerator
+        description: List of the type and count of accelerator cards attached to the instance.
+        varType: |-
+          list(object({
+              type  = string,
+              count = number
+            }))
+        defaultValue: []
+      - name: name_prefix
+        description: Name prefix given to hostnames in this group of execute points; must be unique across all instances of this module
+        varType: string
+        required: true
+      - name: enable_shielded_vm
+        description: Enable the Shielded VM configuration (var.shielded_instance_config).
+        varType: bool
+        defaultValue: false
+      - name: shielded_instance_config
+        description: Shielded VM configuration for the instance (must set var.enabled_shielded_vm)
+        varType: |-
+          object({
+              enable_secure_boot          = bool
+              enable_vtpm                 = bool
+              enable_integrity_monitoring = bool
+            })
+        defaultValue:
+          enable_integrity_monitoring: true
+          enable_secure_boot: true
+          enable_vtpm: true
+      - name: update_policy
+        description: Replacement policy for Access Point Managed Instance Group ("PROACTIVE" to replace immediately or "OPPORTUNISTIC" to replace upon instance power cycle)
+        varType: string
+        defaultValue: OPPORTUNISTIC
+    outputs:
+      - name: autoscaler_runner
+        description: Toolkit runner to configure the HTCondor autoscaler
+      - name: mig_id
+        description: ID of the managed instance group containing the execute points
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - compute.googleapis.com
-    - storage.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 4.0"

@@ -6,9 +6,9 @@ metadata:
     config.kubernetes.io/local-config: "true"
 spec:
   info:
-    title: "Module: Slurm Nodeset (TPU)"
+    title: terraform-google-ai-on-gke
     source:
-      repo: https://github.com/GoogleCloudPlatform/ai-on-gke
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
       sourceType: git
       dir: /modules/embedded/community/modules/internal/slurm-gcp/nodeset_tpu
     actuationTool:

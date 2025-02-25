@@ -1,19 +1,140 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/scripts/startup-script
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/scripts/startup-script
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.3"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which the HPC deployment will be created
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Name of the HPC deployment, used to name GCS bucket for startup scripts.
+        varType: string
+        required: true
+      - name: region
+        description: The region to deploy to
+        varType: string
+        required: true
+      - name: gcs_bucket_path
+        description: The GCS path for storage bucket and the object, starting with `gs://`.
+        varType: string
+      - name: bucket_viewers
+        description: Additional service accounts or groups, users, and domains to which to grant read-only access to startup-script bucket (leave unset if using default Compute Engine service account)
+        varType: list(string)
+        defaultValue: []
+      - name: debug_file
+        description: Path to an optional local to be written with 'startup_script'.
+        varType: string
+      - name: labels
+        description: Labels for the created GCS bucket. Key-value pairs.
+        varType: map(string)
+        required: true
+      - name: runners
+        description: "    List of runners to run on remote VM.\n    Runners can be of type ansible-local, shell or data.\n    A runner must specify one of 'source' or 'content'.\n    All runners must specify 'destination'. If 'destination' does not include a\n    path, it will be copied in a temporary folder and deleted after running.\n    Runners may also pass 'args', which will be passed as argument to shell runners only.\n"
+        varType: list(map(string))
+        defaultValue: []
+      - name: docker
+        description: Install and configure Docker
+        varType: |-
+          object({
+              enabled        = optional(bool, false)
+              world_writable = optional(bool, false)
+              daemon_config  = optional(string, "")
+            })
+        defaultValue:
+          enabled: false
+      - name: enable_docker_world_writable
+        description: "DEPRECATED: use var.docker"
+        varType: bool
+      - name: install_docker
+        description: "DEPRECATED: use var.docker."
+        varType: bool
+      - name: local_ssd_filesystem
+        description: Create and mount a filesystem from local SSD disks (data will be lost if VMs are powered down without enabling migration); enable by setting mountpoint field to a valid directory path.
+        varType: |-
+          object({
+              fs_type     = optional(string, "ext4")
+              mountpoint  = optional(string, "")
+              permissions = optional(string, "0755")
+            })
+        defaultValue:
+          fs_type: ext4
+          mountpoint: ""
+          permissions: "0755"
+      - name: install_cloud_ops_agent
+        description: "Warning: Consider using `install_stackdriver_agent` for better performance. Run Google Ops Agent installation script if set to true."
+        varType: bool
+        defaultValue: false
+      - name: install_stackdriver_agent
+        description: Run Google Stackdriver Agent installation script if set to true. Preferred over ops agent for performance.
+        varType: bool
+        defaultValue: false
+      - name: install_ansible
+        description: Run Ansible installation script if either set to true or unset and runner of type 'ansible-local' are used.
+        varType: bool
+      - name: configure_ssh_host_patterns
+        description: "  If specified, it will automate ssh configuration by:\n  - Defining a Host block for every element of this variable and setting StrictHostKeyChecking to 'No'.\n  Ex: \"hpc*\", \"hpc01*\", \"ml*\"\n  - The first time users log-in, it will create ssh keys that are added to the authorized keys list\n  This requires a shared /home filesystem and relies on specifying the right prefix.\n"
+        varType: list(string)
+        defaultValue: []
+      - name: prepend_ansible_installer
+        description: "  DEPRECATED. Use `install_ansible=false` to prevent ansible installation.\n"
+        varType: bool
+      - name: ansible_virtualenv_path
+        description: Virtual environment path in which to install Ansible
+        varType: string
+        defaultValue: /usr/local/ghpc-venv
+      - name: http_proxy
+        description: Web (http and https) proxy configuration for pip, apt, and yum/dnf and interactive shells
+        varType: string
+        defaultValue: ""
+      - name: http_no_proxy
+        description: Domains for which to disable http_proxy behavior. Honored only if var.http_proxy is set
+        varType: string
+        defaultValue: .google.com,.googleapis.com,metadata.google.internal,localhost,127.0.0.1
+      - name: install_cloud_rdma_drivers
+        description: If true, will install and reload Cloud RDMA drivers. Currently only supported on Rocky Linux 8.
+        varType: bool
+        defaultValue: false
+    outputs:
+      - name: compute_startup_script
+        description: script to load and run all runners, as a string value. Targets the inputs for the slurm controller.
+      - name: controller_startup_script
+        description: script to load and run all runners, as a string value. Targets the inputs for the slurm controller.
+      - name: startup_script
+        description: script to load and run all runners, as a string value.
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - storage.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 3.83"
+      - source: hashicorp/local
+        version: ">= 2.0.0"
+      - source: hashicorp/random
+        version: ~> 3.0

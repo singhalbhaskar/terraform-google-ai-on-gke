@@ -1,0 +1,61 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/scheduler/batch-login-node-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/scheduler/batch-login-node
+  ui:
+    input:
+      variables:
+        batch_job_directory:
+          name: batch_job_directory
+          title: Batch Job Directory
+        deployment_name:
+          name: deployment_name
+          title: Deployment Name
+        enable_oslogin:
+          name: enable_oslogin
+          title: Enable Oslogin
+        gcloud_version:
+          name: gcloud_version
+          title: Gcloud Version
+        instance_template:
+          name: instance_template
+          title: Instance Template
+        job_data:
+          name: job_data
+          title: Job Data
+        job_filename:
+          name: job_filename
+          title: Job Filename
+        job_id:
+          name: job_id
+          title: Job Id
+        job_template_contents:
+          name: job_template_contents
+          title: Job Template Contents
+        labels:
+          name: labels
+          title: Labels
+        network_storage:
+          name: network_storage
+          title: Network Storage
+        project_id:
+          name: project_id
+          title: Project Id
+        region:
+          name: region
+          title: Region
+        startup_script:
+          name: startup_script
+          title: Startup Script
+        zone:
+          name: zone
+          title: Zone

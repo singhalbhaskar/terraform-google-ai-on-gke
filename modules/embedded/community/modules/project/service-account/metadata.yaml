@@ -1,19 +1,93 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/project/service-account
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/project/service-account
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.14.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: billing_account_id
+        description: If assigning billing role, specify a billing account (default is to assign at the organizational level).
+        varType: string
+        defaultValue: ""
+      - name: deployment_name
+        description: Name of the deployment (will be prepended to service account name)
+        varType: string
+        required: true
+      - name: description
+        description: Description of the created service account.
+        varType: string
+        defaultValue: Service Account
+      - name: descriptions
+        description: Deprecated; create single service accounts using var.description.
+        varType: list(string)
+      - name: display_name
+        description: Display name of the created service account.
+        varType: string
+        defaultValue: Service Account
+      - name: generate_keys
+        description: Generate keys for service account.
+        varType: bool
+        defaultValue: false
+      - name: grant_billing_role
+        description: Grant billing user role.
+        varType: bool
+        defaultValue: false
+      - name: grant_xpn_roles
+        description: Grant roles for shared VPC management.
+        varType: bool
+        defaultValue: true
+      - name: name
+        description: Name of the service account to create.
+        varType: string
+        required: true
+      - name: names
+        description: Deprecated; create single service accounts using var.name.
+        varType: list(string)
+      - name: org_id
+        description: Id of the organization for org-level roles.
+        varType: string
+        defaultValue: ""
+      - name: prefix
+        description: Deprecated; prefix now set using var.deployment_name
+        varType: string
+      - name: project_id
+        description: ID of the project
+        varType: string
+        required: true
+      - name: project_roles
+        description: List of roles to grant to service account (e.g. "storage.objectViewer" or "compute.instanceAdmin.v1"
+        varType: list(string)
+        required: true
+    outputs:
+      - name: key
+        description: Service account key (if creation was requested)
+      - name: service_account_email
+        description: Service account e-mail address
+      - name: service_account_iam_email
+        description: Service account IAM binding format (serviceAccount:name@example.com)
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - iam.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

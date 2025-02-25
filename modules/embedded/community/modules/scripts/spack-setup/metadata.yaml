@@ -1,19 +1,117 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/scripts/spack-setup
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/scripts/spack-setup
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.0.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which the HPC deployment will be created.
+        varType: string
+        required: true
+      - name: install_dir
+        description: Directory to install spack into.
+        varType: string
+        defaultValue: /sw/spack
+      - name: spack_url
+        description: URL to clone the spack repo from.
+        varType: string
+        defaultValue: https://github.com/spack/spack
+      - name: spack_ref
+        description: Git ref to checkout for spack.
+        varType: string
+        defaultValue: v0.20.0
+      - name: configure_for_google
+        description: When true, the spack installation will be configured to pull from Google's Spack binary cache.
+        varType: bool
+        defaultValue: true
+      - name: chmod_mode
+        description: |
+          `chmod` to apply to the Spack installation. Adds group write by default. Set to `""` (empty string) to prevent modification.
+          For usage information see:
+          https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html#parameter-mode
+        varType: string
+        defaultValue: g+w
+      - name: system_user_name
+        description: Name of system user that will perform installation of Spack. It will be created if it does not exist.
+        varType: string
+        defaultValue: spack
+      - name: system_user_uid
+        description: UID used when creating system user. Ignored if `system_user_name` already exists on system. Default of 1104762903 is arbitrary.
+        varType: number
+        defaultValue: 1104762903
+      - name: system_user_gid
+        description: GID used when creating system user group. Ignored if `system_user_name` already exists on system. Default of 1104762903 is arbitrary.
+        varType: number
+        defaultValue: 1104762903
+      - name: spack_virtualenv_path
+        description: Virtual environment path in which to install Spack Python interpreter and other dependencies
+        varType: string
+        defaultValue: /usr/local/spack-python
+      - name: deployment_name
+        description: Name of deployment, used to name bucket containing startup script.
+        varType: string
+        required: true
+      - name: region
+        description: Region to place bucket containing startup script.
+        varType: string
+        required: true
+      - name: labels
+        description: Key-value pairs of labels to be added to created resources.
+        varType: map(string)
+        required: true
+      - name: spack_profile_script_path
+        description: Path to the Spack profile.d script. Created by this module
+        varType: string
+        defaultValue: /etc/profile.d/spack.sh
+    outputs:
+      - name: controller_startup_script
+        description: Spack installation script, duplicate for SLURM controller.
+      - name: gcs_bucket_path
+        description: Bucket containing the startup scripts for spack, to be reused by spack-execute module.
+      - name: spack_path
+        description: Path to the root of the spack installation
+      - name: spack_profile_script_path
+        description: Path to the Spack profile.d script.
+      - name: spack_runner
+        description: |
+          Runner to be used with startup-script module or passed to spack-execute module.
+          - installs Spack dependencies
+          - installs Spack 
+          - generates profile.d script to enable access to Spack
+          This is safe to run in parallel by multiple machines. Use in place of deprecated `setup_spack_runner`.
+      - name: startup_script
+        description: Spack installation script.
+      - name: system_user_name
+        description: The system user used to install Spack. It can be reused by spack-execute module to install spack packages.
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - storage.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 4.42"
+      - source: hashicorp/local
+        version: ">= 2.0.0"

@@ -1,21 +1,128 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/database/slurm-cloudsql-federation
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/database/slurm-cloudsql-federation
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: authorized_networks
+        description: IP address ranges as authorized networks of the Cloud SQL for MySQL instances
+        varType: list(string)
+        defaultValue: []
+      - name: database_version
+        description: The version of the database to be created.
+        varType: string
+        defaultValue: MYSQL_5_7
+      - name: data_cache_enabled
+        description: Whether data cache is enabled for the instance. Can be used with ENTERPRISE_PLUS edition.
+        varType: bool
+        defaultValue: false
+      - name: deployment_name
+        description: The name of the current deployment
+        varType: string
+        required: true
+      - name: disk_autoresize
+        description: Set to false to disable automatic disk grow.
+        varType: bool
+        defaultValue: true
+      - name: disk_size_gb
+        description: Size of the database disk in GiB.
+        varType: number
+      - name: edition
+        description: value
+        varType: string
+        defaultValue: ENTERPRISE
+      - name: enable_backups
+        description: Set true to enable backups
+        varType: bool
+        defaultValue: false
+      - name: project_id
+        description: Project in which the HPC deployment will be created
+        varType: string
+        required: true
+      - name: region
+        description: The region where SQL instance will be configured
+        varType: string
+        required: true
+      - name: tier
+        description: The machine type to use for the SQL instance
+        varType: string
+        required: true
+      - name: sql_instance_name
+        description: name given to the sql instance for ease of identificaion
+        varType: string
+        required: true
+      - name: deletion_protection
+        description: Whether or not to allow Terraform to destroy the instance.
+        varType: string
+        defaultValue: false
+      - name: labels
+        description: Labels to add to the instances. Key-value pairs.
+        varType: map(string)
+        required: true
+      - name: sql_username
+        description: Username for the SQL database
+        varType: string
+        defaultValue: slurm
+      - name: sql_password
+        description: Password for the SQL database.
+        varType: any
+      - name: network_id
+        description: |
+          The ID of the GCE VPC network to which the instance is going to be created in.:
+          `projects/<project_id>/global/networks/<network_name>`"
+        varType: string
+        required: true
+      - name: private_vpc_connection_peering
+        description: The name of the VPC Network peering connection, used only as dependency for Cloud SQL creation.
+        varType: string
+      - name: subnetwork_self_link
+        description: Self link of the network where Cloud SQL instance PSC endpoint will be created
+        varType: string
+      - name: user_managed_replication
+        description: Replication parameters that will be used for defined secrets
+        varType: |-
+          list(object({
+              location     = string
+              kms_key_name = optional(string)
+            }))
+        defaultValue: []
+      - name: use_psc_connection
+        description: Create Private Service Connection instead of using Private Service Access peering
+        varType: bool
+        defaultValue: false
+    outputs:
+      - name: cloudsql
+        description: Describes the cloudsql instance.
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - bigqueryconnection.googleapis.com
-    - sqladmin.googleapis.com
-    - servicenetworking.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 3.83"
+      - source: hashicorp/random
+        version: ~> 3.0

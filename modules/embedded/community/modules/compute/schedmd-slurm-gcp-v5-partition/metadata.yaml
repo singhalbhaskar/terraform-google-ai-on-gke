@@ -1,19 +1,236 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/compute/schedmd-slurm-gcp-v-5-partition
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/compute/schedmd-slurm-gcp-v5-partition
+    version: 1.41.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: deployment_name
+        description: Name of the deployment.
+        varType: string
+        required: true
+      - name: slurm_cluster_name
+        description: Cluster name, used for resource naming and slurm accounting. If not provided it will default to the first 8 characters of the deployment name (removing any invalid characters).
+        varType: string
+      - name: project_id
+        description: Project in which the HPC deployment will be created.
+        varType: string
+        required: true
+      - name: region
+        description: The default region for Cloud resources.
+        varType: string
+        required: true
+      - name: zone
+        description: Zone in which to create compute VMs. Additional zones in the same region can be specified in var.zones.
+        varType: string
+        required: true
+      - name: zones
+        description: |
+          Additional nodes in which to allow creation of partition nodes. Google Cloud
+          will find zone based on availability, quota and reservations.
+        varType: set(string)
+        defaultValue: []
+      - name: zone_target_shape
+        description: |
+          Strategy for distributing VMs across zones in a region.
+          ANY
+            GCE picks zones for creating VM instances to fulfill the requested number of VMs
+            within present resource constraints and to maximize utilization of unused zonal
+            reservations.
+          ANY_SINGLE_ZONE (default)
+            GCE always selects a single zone for all the VMs, optimizing for resource quotas,
+            available reservations and general capacity.
+          BALANCED
+            GCE prioritizes acquisition of resources, scheduling VMs in zones where resources
+            are available while distributing VMs as evenly as possible across allowed zones
+            to minimize the impact of zonal failure.
+        varType: string
+        defaultValue: ANY_SINGLE_ZONE
+      - name: partition_name
+        description: The name of the slurm partition.
+        varType: string
+        required: true
+      - name: partition_conf
+        description: |
+          Slurm partition configuration as a map.
+          See https://slurm.schedmd.com/slurm.conf.html#SECTION_PARTITION-CONFIGURATION
+        varType: map(string)
+        defaultValue: {}
+      - name: startup_script
+        description: Startup script that will be used by the partition VMs.
+        varType: string
+        defaultValue: ""
+      - name: partition_startup_scripts_timeout
+        description: |
+          The timeout (seconds) applied to the partition startup script. If
+          any script exceeds this timeout, then the instance setup process is considered
+          failed and handled accordingly.
+
+          NOTE: When set to 0, the timeout is considered infinite and thus disabled.
+        varType: number
+        defaultValue: 300
+      - name: is_default
+        description: |
+          Sets this partition as the default partition by updating the partition_conf.
+          If "Default" is already set in partition_conf, this variable will have no effect.
+        varType: bool
+        defaultValue: false
+      - name: subnetwork_self_link
+        description: Subnet to deploy to.
+        varType: string
+      - name: subnetwork_project
+        description: The project the subnetwork belongs to.
+        varType: string
+        defaultValue: ""
+      - name: exclusive
+        description: Exclusive job access to nodes.
+        varType: bool
+        defaultValue: true
+      - name: enable_placement
+        description: Enable placement groups.
+        varType: bool
+        defaultValue: true
+      - name: enable_reconfigure
+        description: |
+          Enables automatic Slurm reconfigure on when Slurm configuration changes (e.g.
+          slurm.conf.tpl, partition details). Compute instances and resource policies
+          (e.g. placement groups) will be destroyed to align with new configuration.
+
+          NOTE: Requires Python and Google Pub/Sub API.
+
+          *WARNING*: Toggling this will impact the running workload. Deployed compute nodes
+          will be destroyed and their jobs will be requeued.
+        varType: bool
+        defaultValue: false
+      - name: network_storage
+        description: An array of network attached storage mounts to be configured on the partition compute nodes.
+        varType: |-
+          list(object({
+              server_ip             = string,
+              remote_mount          = string,
+              local_mount           = string,
+              fs_type               = string,
+              mount_options         = string,
+              client_install_runner = map(string)
+              mount_runner          = map(string)
+            }))
+        defaultValue: []
+      - name: node_groups
+        description: |
+          A list of node groups associated with this partition. See
+          schedmd-slurm-gcp-v5-node-group for more information on defining a node
+          group in a blueprint.
+        varType: |-
+          list(object({
+              node_count_static      = number
+              node_count_dynamic_max = number
+              group_name             = string
+              node_conf              = map(string)
+              access_config = list(object({
+                nat_ip       = string
+                network_tier = string
+              }))
+              additional_disks = list(object({
+                disk_name    = string
+                device_name  = string
+                disk_size_gb = number
+                disk_type    = string
+                disk_labels  = map(string)
+                auto_delete  = bool
+                boot         = bool
+              }))
+              additional_networks = list(object({
+                network            = string
+                subnetwork         = string
+                subnetwork_project = string
+                network_ip         = string
+                nic_type           = string
+                stack_type         = string
+                queue_count        = number
+                access_config = list(object({
+                  nat_ip       = string
+                  network_tier = string
+                }))
+                ipv6_access_config = list(object({
+                  network_tier = string
+                }))
+                alias_ip_range = list(object({
+                  ip_cidr_range         = string
+                  subnetwork_range_name = string
+                }))
+              }))
+              bandwidth_tier         = string
+              can_ip_forward         = bool
+              disable_smt            = bool
+              disk_auto_delete       = bool
+              disk_labels            = map(string)
+              disk_size_gb           = number
+              disk_type              = string
+              enable_confidential_vm = bool
+              enable_oslogin         = bool
+              enable_shielded_vm     = bool
+              enable_spot_vm         = bool
+              gpu = object({
+                count = number
+                type  = string
+              })
+              instance_template    = string
+              labels               = map(string)
+              machine_type         = string
+              maintenance_interval = string
+              metadata             = map(string)
+              min_cpu_platform     = string
+              on_host_maintenance  = string
+              preemptible          = bool
+              reservation_name     = string
+              service_account = object({
+                email  = string
+                scopes = list(string)
+              })
+              shielded_instance_config = object({
+                enable_integrity_monitoring = bool
+                enable_secure_boot          = bool
+                enable_vtpm                 = bool
+              })
+              spot_instance_config = object({
+                termination_action = string
+              })
+              source_image_family  = string
+              source_image_project = string
+              source_image         = string
+              tags                 = list(string)
+            }))
+        defaultValue: []
+    outputs:
+      - name: partition
+        description: Details of a slurm partition
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - compute.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 5.11"

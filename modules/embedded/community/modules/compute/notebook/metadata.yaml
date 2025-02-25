@@ -1,20 +1,72 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/compute/notebook
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/compute/notebook
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.0.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: ID of project in which the notebook will be created.
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Name of the HPC deployment; used as part of name of the notebook.
+        varType: string
+        required: true
+      - name: zone
+        description: The zone to deploy to
+        varType: string
+        required: true
+      - name: machine_type
+        description: The machine type to employ
+        varType: string
+        required: true
+      - name: labels
+        description: Labels to add to the resource Key-value pairs.
+        varType: map(string)
+        required: true
+      - name: instance_image
+        description: Instance Image
+        varType: map(string)
+        defaultValue:
+          family: tf-latest-cpu
+          name: null
+          project: deeplearning-platform-release
+      - name: gcs_bucket_path
+        description: Bucket name, can be provided from the google-cloud-storage module
+        varType: string
+      - name: mount_runner
+        description: mount content from the google-cloud-storage module
+        varType: map(string)
+        required: true
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - notebooks.googleapis.com
-    - storage.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 4.42"
+      - source: hashicorp/random
+        version: ~> 3.0

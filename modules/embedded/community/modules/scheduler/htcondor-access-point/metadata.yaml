@@ -1,20 +1,197 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/scheduler/htcondor-access-point
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/scheduler/htcondor-access-point
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.1"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which HTCondor pool will be created
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Cluster Toolkit deployment name. HTCondor cloud resource names will include this value.
+        varType: string
+        required: true
+      - name: labels
+        description: Labels to add to resources. List key, value pairs.
+        varType: map(string)
+        required: true
+      - name: region
+        description: Default region for creating resources
+        varType: string
+        required: true
+      - name: zones
+        description: Zone(s) in which access point may be created. If not supplied, defaults to 2 randomly-selected zones in var.region.
+        varType: list(string)
+        defaultValue: []
+      - name: distribution_policy_target_shape
+        description: Target shape acoss zones for instance group managing high availability of access point
+        varType: string
+        defaultValue: ANY_SINGLE_ZONE
+      - name: network_self_link
+        description: The self link of the network in which the HTCondor central manager will be created.
+        varType: string
+      - name: access_point_service_account_email
+        description: Service account for access point (e-mail format)
+        varType: string
+        required: true
+      - name: service_account_scopes
+        description: Scopes by which to limit service account attached to central manager.
+        varType: set(string)
+        defaultValue:
+          - https://www.googleapis.com/auth/cloud-platform
+      - name: network_storage
+        description: An array of network attached storage mounts to be configured
+        varType: |-
+          list(object({
+              server_ip             = string,
+              remote_mount          = string,
+              local_mount           = string,
+              fs_type               = string,
+              mount_options         = string,
+              client_install_runner = map(string)
+              mount_runner          = map(string)
+            }))
+        defaultValue: []
+      - name: disk_size_gb
+        description: Boot disk size in GB
+        varType: number
+        defaultValue: 32
+      - name: disk_type
+        description: Boot disk size in GB
+        varType: string
+        defaultValue: pd-balanced
+      - name: spool_disk_size_gb
+        description: Boot disk size in GB
+        varType: number
+        defaultValue: 32
+      - name: spool_disk_type
+        description: Boot disk size in GB
+        varType: string
+        defaultValue: pd-ssd
+      - name: metadata
+        description: Metadata to add to HTCondor central managers
+        varType: map(string)
+        defaultValue: {}
+      - name: enable_oslogin
+        description: Enable or Disable OS Login with "ENABLE" or "DISABLE". Set to "INHERIT" to inherit project OS Login setting.
+        varType: string
+        defaultValue: ENABLE
+      - name: subnetwork_self_link
+        description: The self link of the subnetwork in which the HTCondor central manager will be created.
+        varType: string
+      - name: enable_high_availability
+        description: Provision HTCondor access point in high availability mode
+        varType: bool
+        defaultValue: false
+      - name: instance_image
+        description: |
+          Custom VM image with HTCondor and Toolkit support installed."
+
+          Expected Fields:
+          name: The name of the image. Mutually exclusive with family.
+          family: The image family to use. Mutually exclusive with name.
+          project: The project where the image is hosted.
+        varType: map(string)
+        required: true
+      - name: allow_automatic_updates
+        description: |
+          If false, disables automatic system package updates on the created instances.  This feature is
+          only available on supported images (or images derived from them).  For more details, see
+          https://cloud.google.com/compute/docs/instances/create-hpc-vm#disable_automatic_updates
+        varType: bool
+        defaultValue: true
+      - name: machine_type
+        description: Machine type to use for HTCondor central managers
+        varType: string
+        defaultValue: n2-standard-4
+      - name: access_point_runner
+        description: A list of Toolkit runners for configuring an HTCondor access point
+        varType: list(map(string))
+        defaultValue: []
+      - name: autoscaler_runner
+        description: A list of Toolkit runners for configuring autoscaling daemons
+        varType: list(map(string))
+        defaultValue: []
+      - name: spool_parent_dir
+        description: HTCondor access point configuration SPOOL will be set to subdirectory named "spool"
+        varType: string
+        defaultValue: /var/lib/condor
+      - name: central_manager_ips
+        description: List of IP addresses of HTCondor Central Managers
+        varType: list(string)
+        required: true
+      - name: htcondor_bucket_name
+        description: Name of HTCondor configuration bucket
+        varType: string
+        required: true
+      - name: enable_public_ips
+        description: Enable Public IPs on the access points
+        varType: bool
+        defaultValue: false
+      - name: mig_id
+        description: List of Managed Instance Group IDs containing execute points in this pool (supplied by htcondor-execute-point module)
+        varType: list(string)
+        defaultValue: []
+      - name: default_mig_id
+        description: Default MIG ID for HTCondor jobs; if unset, jobs must specify MIG id
+        varType: string
+        defaultValue: ""
+      - name: enable_shielded_vm
+        description: Enable the Shielded VM configuration (var.shielded_instance_config).
+        varType: bool
+        defaultValue: false
+      - name: shielded_instance_config
+        description: Shielded VM configuration for the instance (must set var.enabled_shielded_vm)
+        varType: |-
+          object({
+              enable_secure_boot          = bool
+              enable_vtpm                 = bool
+              enable_integrity_monitoring = bool
+            })
+        defaultValue:
+          enable_integrity_monitoring: true
+          enable_secure_boot: true
+          enable_vtpm: true
+      - name: update_policy
+        description: Replacement policy for Access Point Managed Instance Group ("PROACTIVE" to replace immediately or "OPPORTUNISTIC" to replace upon instance power cycle)
+        varType: string
+        defaultValue: OPPORTUNISTIC
+    outputs:
+      - name: access_point_ips
+        description: IP addresses of the access points provisioned by this module
+      - name: access_point_name
+        description: Name of the access point provisioned by this module
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - compute.googleapis.com
-    - storage.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 3.83"
+      - source: hashicorp/random
+        version: ~> 3.6

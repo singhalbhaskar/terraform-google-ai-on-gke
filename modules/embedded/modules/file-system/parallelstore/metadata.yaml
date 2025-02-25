@@ -1,19 +1,109 @@
-# Copyright 2024 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/file-system/parallelstore
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/file-system/parallelstore
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which the HPC deployment will be created.
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Name of the HPC deployment.
+        varType: string
+        required: true
+      - name: daos_agent_config
+        description: Additional configuration to be added to daos_config.yml
+        varType: string
+        defaultValue: ""
+      - name: dfuse_environment
+        description: Additional environment variables for DFuse process
+        varType: map(string)
+        defaultValue: {}
+      - name: name
+        description: Name of parallelstore instance.
+        varType: string
+      - name: zone
+        description: Location for parallelstore instance.
+        varType: string
+        required: true
+      - name: size_gb
+        description: Storage size of the parallelstore instance in GB.
+        varType: number
+        defaultValue: 12000
+      - name: labels
+        description: Labels to add to parallel store instance.
+        varType: map(string)
+        defaultValue: {}
+      - name: local_mount
+        description: The mount point where the contents of the device may be accessed after mounting.
+        varType: string
+        defaultValue: /parallelstore
+      - name: mount_options
+        description: Options describing various aspects of the parallelstore instance.
+        varType: string
+        defaultValue: disable-wb-cache,thread-count=16,eq-count=8
+      - name: private_vpc_connection_peering
+        description: |
+          The name of the VPC Network peering connection.
+          If using new VPC, please use community/modules/network/private-service-access to create private-service-access and
+          If using existing VPC with private-service-access enabled, set this manually."
+        varType: string
+        required: true
+      - name: network_id
+        description: |
+          The ID of the GCE VPC network to which the instance is connected given in the format:
+          `projects/<project_id>/global/networks/<network_name>`"
+        varType: string
+        required: true
+      - name: import_gcs_bucket_uri
+        description: The name of the GCS bucket to import data from to parallelstore.
+        varType: string
+      - name: import_destination_path
+        description: The name of local path to import data on parallelstore instance from GCS bucket.
+        varType: string
+      - name: file_stripe
+        description: The parallelstore stripe level for files.
+        varType: string
+      - name: directory_stripe
+        description: The parallelstore stripe level for directories.
+        varType: string
+    outputs:
+      - name: instructions
+        description: Instructions to monitor import-data operation from GCS bucket to parallelstore.
+      - name: network_storage
+        description: Describes a parallelstore instance.
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - parallelstore.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 6.13.0"
+      - source: hashicorp/null
+        version: ~> 3.0
+      - source: hashicorp/random
+        version: ~> 3.0

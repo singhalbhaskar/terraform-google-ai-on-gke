@@ -1,20 +1,134 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/scripts/pbspro-preinstall
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/scripts/pbspro-preinstall
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project in which Google Cloud Storage bucket will be created
+        varType: string
+        required: true
+      - name: deployment_name
+        description: Cluster Toolkit deployment name. Cloud resource names will include this value.
+        varType: string
+        required: true
+      - name: region
+        description: Default region for creating resources
+        varType: string
+        required: true
+      - name: devel_rpm
+        description: Absolute path to PBS Pro Development RPM file
+        varType: string
+        required: true
+      - name: server_rpm
+        description: Absolute path to PBS Pro Server Host RPM file
+        varType: string
+        required: true
+      - name: client_rpm
+        description: Absolute path to PBS Pro Client Host RPM file
+        varType: string
+        required: true
+      - name: execution_rpm
+        description: Absolute path to PBS Pro Execution Host RPM file
+        varType: string
+        required: true
+      - name: license_file
+        description: Path to PBS Pro license file
+        varType: string
+      - name: location
+        description: Google Cloud Storage bucket location (defaults to var.region if not set)
+        varType: string
+      - name: storage_class
+        description: Google Cloud Storage class
+        varType: string
+        defaultValue: STANDARD
+      - name: bucket_lifecycle_rules
+        description: Additional lifecycle_rules for specific buckets. Map of lowercase unprefixed name => list of lifecycle rules to configure.
+        varType: |-
+          list(object({
+              # Object with keys:
+              # - type - The type of the action of this Lifecycle Rule. Supported values: Delete and SetStorageClass.
+              # - storage_class - (Required if action type is SetStorageClass) The target Storage Class of objects affected by this Lifecycle Rule.
+              action = map(string)
+
+              # Object with keys:
+              # - age - (Optional) Minimum age of an object in days to satisfy this condition.
+              # - created_before - (Optional) Creation date of an object in RFC 3339 (e.g. 2017-06-13) to satisfy this condition.
+              # - with_state - (Optional) Match to live and/or archived objects. Supported values include: "LIVE", "ARCHIVED", "ANY".
+              # - matches_storage_class - (Optional) Comma delimited string for storage class of objects to satisfy this condition. Supported values include: MULTI_REGIONAL, REGIONAL, NEARLINE, COLDLINE, STANDARD, DURABLE_REDUCED_AVAILABILITY.
+              # - num_newer_versions - (Optional) Relevant only for versioned objects. The number of newer versions of an object to satisfy this condition.
+              # - custom_time_before - (Optional) A date in the RFC 3339 format YYYY-MM-DD. This condition is satisfied when the customTime metadata for the object is set to an earlier date than the date used in this lifecycle condition.
+              # - days_since_custom_time - (Optional) The number of days from the Custom-Time metadata attribute after which this condition becomes true.
+              # - days_since_noncurrent_time - (Optional) Relevant only for versioned objects. Number of days elapsed since the noncurrent timestamp of an object.
+              # - noncurrent_time_before - (Optional) Relevant only for versioned objects. The date in RFC 3339 (e.g. 2017-06-13) when the object became nonconcurrent.
+              condition = map(string)
+            }))
+        defaultValue:
+          - action:
+              type: Delete
+            condition:
+              age: 14
+              num_newer_versions: 2
+      - name: retention_policy
+        description: Google Cloud Storage retention policy (to prevent accidental deletion)
+        varType: any
+        defaultValue: {}
+      - name: versioning
+        description: Enable versioning of Google Cloud Storage objects (cannot be enabled with a retention policy)
+        varType: bool
+        defaultValue: false
+      - name: force_destroy
+        description: Set to true if object versioning is enabled and you are certain that you want to destroy the bucket.
+        varType: bool
+        defaultValue: false
+      - name: bucket_viewers
+        description: A list of additional accounts that can read packages from this bucket
+        varType: set(string)
+        defaultValue: []
+      - name: labels
+        description: Labels to add to the created bucket. Key-value pairs.
+        varType: map(string)
+        required: true
+    outputs:
+      - name: bucket_name
+        description: Bucket for PBS RPM packages
+      - name: pbs_client_rpm_url
+        description: gsutil URL of PBS client RPM package
+      - name: pbs_devel_rpm_url
+        description: gsutil URL of PBS development RPM package
+      - name: pbs_execution_rpm_url
+        description: gsutil URL of PBS execution host RPM package
+      - name: pbs_license_file_url
+        description: gsutil URL of PBS license file
+      - name: pbs_server_rpm_url
+        description: gsutil URL of PBS server host RPM package
   requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
     services:
-    - iam.googleapis.com
-    - storage.googleapis.com
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 3.83"

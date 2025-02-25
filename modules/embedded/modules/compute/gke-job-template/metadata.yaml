@@ -1,18 +1,160 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/compute/gke-job-template
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/compute/gke-job-template
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.2"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: name
+        description: The name of the job.
+        varType: string
+        defaultValue: my-job
+      - name: node_count
+        description: How many nodes the job should run in parallel.
+        varType: number
+        defaultValue: 1
+      - name: completion_mode
+        description: Sets value of `completionMode` on the job. Default uses indexed jobs. See [documentation](https://kubernetes.io/blog/2021/04/19/introducing-indexed-jobs/) for more information
+        varType: string
+        defaultValue: Indexed
+      - name: command
+        description: The command and arguments for the container that run in the Pod. The command field corresponds to entrypoint in some container runtimes.
+        varType: list(string)
+        defaultValue:
+          - hostname
+      - name: image
+        description: The container image the job should use.
+        varType: string
+        defaultValue: debian
+      - name: k8s_service_account_name
+        description: Kubernetes service account to run the job as. If null then no service account is specified.
+        varType: string
+      - name: node_pool_name
+        description: A list of node pool names on which to run the job. Can be populated via `use` field.
+        varType: list(string)
+        defaultValue: []
+      - name: allocatable_cpu_per_node
+        description: The allocatable cpu per node. Used to claim whole nodes. Generally populated from gke-node-pool via `use` field.
+        varType: list(number)
+        defaultValue:
+          - -1
+      - name: has_gpu
+        description: Indicates that the job should request nodes with GPUs. Typically supplied by a gke-node-pool module.
+        varType: list(bool)
+        defaultValue:
+          - false
+      - name: requested_cpu_per_pod
+        description: The requested cpu per pod. If null, allocatable_cpu_per_node will be used to claim whole nodes. If provided will override allocatable_cpu_per_node.
+        varType: number
+        defaultValue: -1
+      - name: allocatable_gpu_per_node
+        description: The allocatable gpu per node. Used to claim whole nodes. Generally populated from gke-node-pool via `use` field.
+        varType: list(number)
+        defaultValue:
+          - -1
+      - name: requested_gpu_per_pod
+        description: The requested gpu per pod. If null, allocatable_gpu_per_node will be used to claim whole nodes. If provided will override allocatable_gpu_per_node.
+        varType: number
+        defaultValue: -1
+      - name: tolerations
+        description: Tolerations allow the scheduler to schedule pods with matching taints. Generally populated from gke-node-pool via `use` field.
+        varType: |-
+          list(object({
+              key      = string
+              operator = string
+              value    = string
+              effect   = string
+            }))
+        defaultValue:
+          - effect: NoSchedule
+            key: user-workload
+            operator: Equal
+            value: "true"
+      - name: security_context
+        description: "The security options the container should be run with. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/"
+        varType: |-
+          list(object({
+              key   = string
+              value = string
+            }))
+        defaultValue: []
+      - name: machine_family
+        description: "The machine family to use in the node selector (example: `n2`). If null then machine family will not be used as selector criteria."
+        varType: string
+      - name: node_selectors
+        description: A list of node selectors to use to place the job.
+        varType: |-
+          list(object({
+              key   = string
+              value = string
+            }))
+        defaultValue: []
+      - name: restart_policy
+        description: Job restart policy. Only a RestartPolicy equal to `Never` or `OnFailure` is allowed.
+        varType: string
+        defaultValue: Never
+      - name: backoff_limit
+        description: Controls the number of retries before considering a Job as failed. Set to zero for shared fate.
+        varType: number
+        defaultValue: 0
+      - name: random_name_sufix
+        description: Appends a random suffix to the job name to avoid clashes.
+        varType: bool
+        defaultValue: true
+      - name: persistent_volume_claims
+        description: A list of objects that describes a k8s PVC that is to be used and mounted on the job. Generally supplied by the gke-persistent-volume module.
+        varType: |-
+          list(object({
+              name          = string
+              mount_path    = string
+              mount_options = string
+              is_gcs        = bool
+            }))
+        defaultValue: []
+      - name: ephemeral_volumes
+        description: "Will create an emptyDir or ephemeral volume that is backed by the specified type: `memory`, `local-ssd`, `pd-balanced`, `pd-ssd`. `size_gb` is provided in GiB."
+        varType: |-
+          list(object({
+              type       = string
+              mount_path = string
+              size_gb    = number
+            }))
+        defaultValue: []
+      - name: labels
+        description: Labels to add to the GKE job template. Key-value pairs.
+        varType: map(string)
+        required: true
+    outputs:
+      - name: instructions
+        description: Instructions for submitting the GKE job.
   requirements:
-    services: []
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/local
+        version: ">= 2.0.0"
+      - source: hashicorp/random
+        version: ~> 3.0

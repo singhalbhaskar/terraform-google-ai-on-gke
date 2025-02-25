@@ -1,0 +1,271 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/community/modules/internal/slurm-gcp/instance-template
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/internal/slurm-gcp/instance_template
+    actuationTool:
+      flavor: Terraform
+      version: ~> 1.0
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project ID to create resources in.
+        varType: string
+        required: true
+      - name: on_host_maintenance
+        description: Instance availability Policy
+        varType: string
+        defaultValue: MIGRATE
+      - name: labels
+        description: Labels, provided as a map
+        varType: map(string)
+        defaultValue: {}
+      - name: enable_oslogin
+        description: |
+          Enables Google Cloud os-login for user login and authentication for VMs.
+          See https://cloud.google.com/compute/docs/oslogin
+        varType: bool
+        defaultValue: true
+      - name: subnetwork_project
+        description: The ID of the project in which the subnetwork belongs. If it is not provided, the provider project is used.
+        varType: string
+      - name: network
+        description: |
+          The name or self_link of the network to attach this interface to. Use network
+          attribute for Legacy or Auto subnetted networks and subnetwork for custom
+          subnetted networks.
+        varType: string
+      - name: subnetwork
+        description: |
+          The name of the subnetwork to attach this interface to. The subnetwork must
+          exist in the same region this instance will be created in. Either network or
+          subnetwork must be provided.
+        varType: string
+      - name: region
+        description: Region where the instance template should be created.
+        varType: string
+      - name: tags
+        description: Network tag list.
+        varType: list(string)
+        defaultValue: []
+      - name: can_ip_forward
+        description: Enable IP forwarding, for NAT instances for example.
+        varType: bool
+        defaultValue: false
+      - name: network_ip
+        description: Private IP address to assign to the instance if desired.
+        varType: string
+        defaultValue: ""
+      - name: name_prefix
+        description: Prefix for template resource.
+        varType: string
+        defaultValue: default
+      - name: bandwidth_tier
+        description: |
+          Tier 1 bandwidth increases the maximum egress bandwidth for VMs.
+          Using the `virtio_enabled` setting will only enable VirtioNet and will not enable TIER_1.
+          Using the `tier_1_enabled` setting will enable both gVNIC and TIER_1 higher bandwidth networking.
+          Using the `gvnic_enabled` setting will only enable gVNIC and will not enable TIER_1.
+          Note that TIER_1 only works with specific machine families & shapes and must be using an image that supports gVNIC. See [official docs](https://cloud.google.com/compute/docs/networking/configure-vm-with-high-bandwidth-configuration) for more details.
+        varType: string
+        defaultValue: platform_default
+      - name: additional_networks
+        description: Additional network interface details for GCE, if any.
+        varType: |-
+          list(object({
+              network            = string
+              subnetwork         = string
+              subnetwork_project = string
+              network_ip         = string
+              nic_type           = string
+              access_config = list(object({
+                nat_ip       = string
+                network_tier = string
+              }))
+              ipv6_access_config = list(object({
+                network_tier = string
+              }))
+            }))
+        defaultValue: []
+      - name: access_config
+        description: Access configurations, i.e. IPs via which the VM instance can be accessed via the Internet.
+        varType: |-
+          list(object({
+              nat_ip       = string
+              network_tier = string
+            }))
+        defaultValue: []
+      - name: machine_type
+        description: Machine type to create.
+        varType: string
+        defaultValue: n1-standard-1
+      - name: min_cpu_platform
+        description: |
+          Specifies a minimum CPU platform. Applicable values are the friendly names of
+          CPU platforms, such as Intel Haswell or Intel Skylake. See the complete list:
+          https://cloud.google.com/compute/docs/instances/specify-min-cpu-platform
+        varType: string
+      - name: gpu
+        description: |
+          GPU information. Type and count of GPU to attach to the instance template. See
+          https://cloud.google.com/compute/docs/gpus more details.
+          - type : the GPU type
+          - count : number of GPUs
+        varType: |-
+          object({
+              type  = string
+              count = number
+            })
+      - name: service_account
+        description: |
+          Service account to attach to the instances. See
+          'main.tf:local.service_account' for the default.
+        varType: |-
+          object({
+              email  = string
+              scopes = set(string)
+            })
+      - name: shielded_instance_config
+        description: |
+          Shielded VM configuration for the instance. Note: not used unless
+          enable_shielded_vm is 'true'.
+          - enable_integrity_monitoring : Compare the most recent boot measurements to the
+            integrity policy baseline and return a pair of pass/fail results depending on
+            whether they match or not.
+          - enable_secure_boot : Verify the digital signature of all boot components, and
+            halt the boot process if signature verification fails.
+          - enable_vtpm : Use a virtualized trusted platform module, which is a
+            specialized computer chip you can use to encrypt objects like keys and
+            certificates.
+        varType: |-
+          object({
+              enable_integrity_monitoring = bool
+              enable_secure_boot          = bool
+              enable_vtpm                 = bool
+            })
+        defaultValue:
+          enable_integrity_monitoring: true
+          enable_secure_boot: true
+          enable_vtpm: true
+      - name: enable_confidential_vm
+        description: "Enable the Confidential VM configuration. Note: the instance image must support option."
+        varType: bool
+        defaultValue: false
+      - name: enable_shielded_vm
+        description: "Enable the Shielded VM configuration. Note: the instance image must support option."
+        varType: bool
+        defaultValue: false
+      - name: preemptible
+        description: Allow the instance to be preempted.
+        varType: bool
+        defaultValue: false
+      - name: spot
+        description: |
+          Provision as a SPOT preemptible instance.
+          See https://cloud.google.com/compute/docs/instances/spot for more details.
+        varType: bool
+        defaultValue: false
+      - name: termination_action
+        description: |
+          Which action to take when Compute Engine preempts the VM. Value can be: 'STOP', 'DELETE'. The default value is 'STOP'.
+          See https://cloud.google.com/compute/docs/instances/spot for more details.
+        varType: string
+        defaultValue: STOP
+      - name: metadata
+        description: Metadata, provided as a map.
+        varType: map(string)
+        defaultValue: {}
+      - name: source_image_project
+        description: Project where the source image comes from. If it is not provided, the provider project is used.
+        varType: string
+        defaultValue: ""
+      - name: source_image_family
+        description: Source image family.
+        varType: string
+        defaultValue: ""
+      - name: source_image
+        description: Source disk image.
+        varType: string
+        defaultValue: ""
+      - name: disk_type
+        description: Boot disk type, can be either pd-ssd, local-ssd, or pd-standard.
+        varType: string
+        defaultValue: pd-standard
+      - name: disk_size_gb
+        description: Boot disk size in GB.
+        varType: number
+        defaultValue: 100
+      - name: disk_labels
+        description: Labels to be assigned to boot disk, provided as a map.
+        varType: map(string)
+        defaultValue: {}
+      - name: disk_auto_delete
+        description: Whether or not the boot disk should be auto-deleted.
+        varType: bool
+        defaultValue: true
+      - name: additional_disks
+        description: List of maps of disks.
+        varType: |-
+          list(object({
+              disk_name    = string
+              device_name  = string
+              disk_type    = string
+              disk_size_gb = number
+              disk_labels  = map(string)
+              auto_delete  = bool
+              boot         = bool
+            }))
+        defaultValue: []
+      - name: slurm_instance_role
+        description: "Slurm instance type. Must be one of: controller; login; compute; or null."
+        varType: string
+        required: true
+      - name: slurm_cluster_name
+        description: Cluster name, used for resource naming.
+        varType: string
+        required: true
+      - name: disable_smt
+        description: Disables Simultaneous Multi-Threading (SMT) on instance.
+        varType: bool
+        defaultValue: false
+      - name: slurm_bucket_path
+        description: GCS Bucket URI of Slurm cluster file storage.
+        varType: string
+        required: true
+    outputs:
+      - name: instance_template
+        description: Instance template details
+      - name: name
+        description: Name of instance template
+      - name: self_link
+        description: Self_link of instance template
+      - name: service_account
+        description: Service account object, includes email and scopes.
+      - name: tags
+        description: Tags that will be associated with instance(s)
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/local
+        version: ~> 2.0

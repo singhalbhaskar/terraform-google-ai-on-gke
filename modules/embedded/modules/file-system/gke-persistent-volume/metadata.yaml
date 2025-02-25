@@ -1,18 +1,75 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/file-system/gke-persistent-volume
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/file-system/gke-persistent-volume
+    version: 1.45.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: cluster_id
+        description: An identifier for the GKE cluster in the format `projects/{{project}}/locations/{{location}}/clusters/{{cluster}}`
+        varType: string
+        required: true
+      - name: network_storage
+        description: Network attached storage mount to be configured.
+        varType: |-
+          object({
+              server_ip             = string,
+              remote_mount          = string,
+              local_mount           = string,
+              fs_type               = string,
+              mount_options         = string,
+              client_install_runner = map(string)
+              mount_runner          = map(string)
+            })
+        required: true
+      - name: filestore_id
+        description: An identifier for a filestore with the format `projects/{{project}}/locations/{{location}}/instances/{{name}}`.
+        varType: string
+      - name: gcs_bucket_name
+        description: The gcs bucket to be used with the persistent volume.
+        varType: string
+      - name: capacity_gb
+        description: The storage capacity with which to create the persistent volume.
+        varType: number
+        required: true
+      - name: labels
+        description: GCE resource labels to be applied to resources. Key-value pairs.
+        varType: map(string)
+        required: true
+    outputs:
+      - name: persistent_volume_claims
+        description: An object that describes a k8s PVC created by this module.
   requirements:
-    services: []
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: gavinbunney/kubectl
+        version: ">= 1.7.0"
+      - source: hashicorp/google
+        version: ">= 4.42"
+      - source: hashicorp/local
+        version: ">= 2.0.0"

@@ -1,0 +1,47 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/internal/gpu-definition
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/internal/gpu-definition
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: guest_accelerator
+        description: List of the type and count of accelerator cards attached to the instance.
+        varType: |-
+          list(object({
+              type  = string,
+              count = number
+            }))
+        defaultValue: []
+      - name: machine_type
+        description: Machine type to use for the instance creation
+        varType: string
+        required: true
+    outputs:
+      - name: guest_accelerator
+        description: Sanitized list of the type and count of accelerator cards attached to the instance.
+      - name: machine_type_guest_accelerator
+        description: List of the type and count of accelerator cards attached to the specified machine type.
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

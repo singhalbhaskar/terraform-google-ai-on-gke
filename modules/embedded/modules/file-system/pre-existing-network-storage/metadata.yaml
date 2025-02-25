@@ -1,18 +1,68 @@
-# Copyright 2023 "Google LLC"
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
----
-
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-ai-on-gke-embedded/modules/file-system/pre-existing-network-storage
+  annotations:
+    config.kubernetes.io/local-config: "true"
 spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/modules/file-system/pre-existing-network-storage
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.14.0"
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: server_ip
+        description: The device name as supplied to fs-tab, excluding remote fs-name(for nfs, that is the server IP, for lustre <MGS NID>[:<MGS NID>]). This can be omitted for gcsfuse.
+        varType: string
+        defaultValue: ""
+      - name: remote_mount
+        description: Remote FS name or export. This is the exported directory for nfs, fs name for lustre, and bucket name (without gs://) for gcsfuse.
+        varType: string
+        required: true
+      - name: local_mount
+        description: The mount point where the contents of the device may be accessed after mounting.
+        varType: string
+        defaultValue: /mnt
+      - name: fs_type
+        description: Type of file system to be mounted (e.g., nfs, lustre)
+        varType: string
+        defaultValue: nfs
+      - name: mount_options
+        description: Options describing various aspects of the file system. Consider adding setting to 'defaults,_netdev,implicit_dirs' when using gcsfuse.
+        varType: string
+        defaultValue: defaults,_netdev
+      - name: parallelstore_options
+        description: Parallelstore specific options
+        varType: |-
+          object({
+              daos_agent_config = optional(string, "")
+              dfuse_environment = optional(map(string), {})
+            })
+        defaultValue: {}
+    outputs:
+      - name: client_install_runner
+        description: Runner that performs client installation needed to use file system.
+      - name: mount_runner
+        description: Runner that mounts the file system.
+      - name: network_storage
+        description: Describes a remote network storage to be mounted by fs-tab.
   requirements:
-    services: []
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com

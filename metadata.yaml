@@ -259,8 +259,10 @@ spec:
     outputs:
       - name: gke_cluster
         description: Link to GKE cluster
+        type: string
       - name: result_bucket
         description: Link to result GCS bucket
+        type: string
   requirements:
     roles:
       - level: Project
