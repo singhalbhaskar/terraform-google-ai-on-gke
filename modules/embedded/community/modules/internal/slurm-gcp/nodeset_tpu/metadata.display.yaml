@@ -1,0 +1,67 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: ai-on-gke-embedded/community/modules/internal/slurm-gcp/nodeset-tpu-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: "Module: Slurm Nodeset (TPU)"
+    source:
+      repo: https://github.com/GoogleCloudPlatform/ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/internal/slurm-gcp/nodeset_tpu
+  ui:
+    input:
+      variables:
+        accelerator_config:
+          name: accelerator_config
+          title: Accelerator Config
+        data_disks:
+          name: data_disks
+          title: Data Disks
+        docker_image:
+          name: docker_image
+          title: Docker Image
+        enable_public_ip:
+          name: enable_public_ip
+          title: Enable Public Ip
+        network_storage:
+          name: network_storage
+          title: Network Storage
+        node_count_dynamic_max:
+          name: node_count_dynamic_max
+          title: Node Count Dynamic Max
+        node_count_static:
+          name: node_count_static
+          title: Node Count Static
+        node_type:
+          name: node_type
+          title: Node Type
+        nodeset_name:
+          name: nodeset_name
+          title: Nodeset Name
+        preemptible:
+          name: preemptible
+          title: Preemptible
+        preserve_tpu:
+          name: preserve_tpu
+          title: Preserve Tpu
+        project_id:
+          name: project_id
+          title: Project Id
+        reserved:
+          name: reserved
+          title: Reserved
+        service_account:
+          name: service_account
+          title: Service Account
+        subnetwork:
+          name: subnetwork
+          title: Subnetwork
+        tf_version:
+          name: tf_version
+          title: Tf Version
+        zone:
+          name: zone
+          title: Zone

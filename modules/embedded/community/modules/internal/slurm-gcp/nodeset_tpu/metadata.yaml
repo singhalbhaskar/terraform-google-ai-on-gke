@@ -1,0 +1,130 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: ai-on-gke-embedded/community/modules/internal/slurm-gcp/nodeset-tpu
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: "Module: Slurm Nodeset (TPU)"
+    source:
+      repo: https://github.com/GoogleCloudPlatform/ai-on-gke
+      sourceType: git
+      dir: /modules/embedded/community/modules/internal/slurm-gcp/nodeset_tpu
+    actuationTool:
+      flavor: Terraform
+      version: ~> 1.2
+    description: {}
+    icon: assets/icon.png
+  content:
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: nodeset_name
+        description: Name of Slurm nodeset.
+        varType: string
+        required: true
+      - name: node_type
+        description: Specify a node type to base the vm configuration upon it. Not needed if you use accelerator_config
+        varType: string
+      - name: accelerator_config
+        description: Nodeset accelerator config, see https://cloud.google.com/tpu/docs/supported-tpu-configurations for details.
+        varType: |-
+          object({
+              topology = string
+              version  = string
+            })
+        defaultValue:
+          topology: ""
+          version: ""
+      - name: docker_image
+        description: The gcp container registry id docker image to use in the TPU vms, it defaults to gcr.io/schedmd-slurm-public/tpu:slurm-gcp-6-8-tf-<var.tf_version>
+        varType: string
+        defaultValue: ""
+      - name: tf_version
+        description: Nodeset Tensorflow version, see https://cloud.google.com/tpu/docs/supported-tpu-configurations#tpu_vm for details.
+        varType: string
+        required: true
+      - name: zone
+        description: Nodes will only be created in this zone. Check https://cloud.google.com/tpu/docs/regions-zones to get zones with TPU-vm in it.
+        varType: string
+        required: true
+      - name: preemptible
+        description: Specify whether TPU-vms in this nodeset are preemtible, see https://cloud.google.com/tpu/docs/preemptible for details.
+        varType: bool
+        defaultValue: false
+      - name: reserved
+        description: Specify whether TPU-vms in this nodeset are created under a reservation.
+        varType: bool
+        defaultValue: false
+      - name: preserve_tpu
+        description: Specify whether TPU-vms will get preserve on suspend, if set to true, on suspend vm is stopped, on false it gets deleted
+        varType: bool
+        defaultValue: true
+      - name: node_count_static
+        description: Number of nodes to be statically created.
+        varType: number
+        defaultValue: 0
+      - name: node_count_dynamic_max
+        description: Maximum number of nodes allowed in this partition to be created dynamically.
+        varType: number
+        defaultValue: 0
+      - name: enable_public_ip
+        description: Enables IP address to access the Internet.
+        varType: bool
+        defaultValue: false
+      - name: data_disks
+        description: The data disks to include in the TPU node
+        varType: list(string)
+        defaultValue: []
+      - name: subnetwork
+        description: The name of the subnetwork to attach the TPU-vm of this nodeset to.
+        varType: string
+        required: true
+      - name: service_account
+        description: |
+          Service account to attach to the TPU-vm.
+          If none is given, the default service account and scopes will be used.
+        varType: |-
+          object({
+              email  = string
+              scopes = set(string)
+            })
+      - name: project_id
+        description: Project ID to create resources in.
+        varType: string
+        required: true
+      - name: network_storage
+        description: An array of network attached storage mounts to be configured on nodes.
+        varType: |-
+          list(object({
+              server_ip     = string,
+              remote_mount  = string,
+              local_mount   = string,
+              fs_type       = string,
+              mount_options = string,
+            }))
+        defaultValue: []
+    outputs:
+      - name: nodeset
+        description: Nodeset details.
+      - name: nodeset_name
+        description: Nodeset name.
+      - name: service_account
+        description: Service account object, includes email and scopes.
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 3.53"
+      - source: hashicorp/null
+        version: ~> 3.0

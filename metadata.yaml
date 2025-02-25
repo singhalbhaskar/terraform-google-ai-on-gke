@@ -1,0 +1,283 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: ai-on-gke
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: terraform-google-ai-on-gke
+    source:
+      repo: https://github.com/singhalbhaskar/terraform-google-ai-on-gke
+      sourceType: git
+    version: 0.0.1
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.2"
+    description:
+      tagline: This is an auto-generated module.
+      detailed: "This module was generated from "
+      preDeploy: To deploy this blueprint you must have an active billing account and billing permissions.
+    icon: assets/icon.png
+    costEstimate:
+      description: Blueprint cost details
+      url: https://cloud.google.com/products/calculator?id=02fb0c45-cc29-4567-8cc6-f72ac9024add
+  content:
+    architecture:
+      diagramUrl: https://www.link-to-architecture-diagram.com
+      description:
+        - 1. Architecture description step no. 1
+        - 2. Architecture description step no. 2
+        - 3. Architecture description step no. N
+    documentation:
+      - title: Hosting a Static Website
+        url: https://cloud.google.com/storage/docs/hosting-static-website
+    subBlueprints:
+      - name: DDN-EXAScaler
+        location: modules/file-system/DDN-EXAScaler
+      - name: batch-job-template
+        location: modules/scheduler/batch-job-template
+      - name: batch-login-node
+        location: modules/scheduler/batch-login-node
+      - name: bigquery-dataset
+        location: modules/database/bigquery-dataset
+      - name: bigquery-sub
+        location: modules/pubsub/bigquery-sub
+      - name: bigquery-table
+        location: modules/database/bigquery-table
+      - name: chrome-remote-desktop
+        location: modules/remote-desktop/chrome-remote-desktop
+      - name: cloud-storage-bucket
+        location: modules/file-system/cloud-storage-bucket
+      - name: dashboard
+        location: modules/monitoring/dashboard
+      - name: filestore
+        location: modules/file-system/filestore
+      - name: firewall-rules
+        location: modules/network/firewall-rules
+      - name: fsi-montecarlo-on-batch
+        location: modules/files/fsi-montecarlo-on-batch
+      - name: gcs
+        location: modules/gcs
+      - name: gke-cluster
+        location: modules/scheduler/gke-cluster
+      - name: gke-job-template
+        location: modules/compute/gke-job-template
+      - name: gke-node-pool
+        location: modules/compute/gke-node-pool
+      - name: gke-persistent-volume
+        location: modules/file-system/gke-persistent-volume
+      - name: gke-storage
+        location: modules/file-system/gke-storage
+      - name: gke-topology-scheduler
+        location: modules/compute/gke-topology-scheduler
+      - name: gpu-definition
+        location: modules/internal/gpu-definition
+      - name: gpu-rdma-vpc
+        location: modules/network/gpu-rdma-vpc
+      - name: htcondor-access-point
+        location: modules/scheduler/htcondor-access-point
+      - name: htcondor-central-manager
+        location: modules/scheduler/htcondor-central-manager
+      - name: htcondor-execute-point
+        location: modules/compute/htcondor-execute-point
+      - name: htcondor-install
+        location: modules/scripts/htcondor-install
+      - name: htcondor-pool-secrets
+        location: modules/scheduler/htcondor-pool-secrets
+      - name: htcondor-service-accounts
+        location: modules/scheduler/htcondor-service-accounts
+      - name: htcondor-setup
+        location: modules/scheduler/htcondor-setup
+      - name: instance
+        location: modules/internal/slurm-gcp/instance
+      - name: instance_template
+        location: modules/internal/slurm-gcp/instance_template
+      - name: internal_instance_template
+        location: modules/internal/slurm-gcp/internal_instance_template
+      - name: kubectl
+        location: modules/management/kubectl-apply/kubectl
+      - name: kubectl-apply
+        location: modules/management/kubectl-apply
+      - name: mig
+        location: modules/compute/mig
+      - name: multivpc
+        location: modules/network/multivpc
+      - name: nemo
+        location: modules/nemo
+      - name: new-project
+        location: modules/project/new-project
+      - name: nfs-server
+        location: modules/file-system/nfs-server
+      - name: nodeset_tpu
+        location: modules/internal/slurm-gcp/nodeset_tpu
+      - name: notebook
+        location: modules/compute/notebook
+      - name: omnia-install
+        location: modules/scripts/omnia-install
+      - name: parallelstore
+        location: modules/file-system/parallelstore
+      - name: pbspro-client
+        location: modules/scheduler/pbspro-client
+      - name: pbspro-execution
+        location: modules/compute/pbspro-execution
+      - name: pbspro-install
+        location: modules/scripts/pbspro-install
+      - name: pbspro-preinstall
+        location: modules/scripts/pbspro-preinstall
+      - name: pbspro-qmgr
+        location: modules/scripts/pbspro-qmgr
+      - name: pbspro-server
+        location: modules/scheduler/pbspro-server
+      - name: pre-existing-gke-cluster
+        location: modules/scheduler/pre-existing-gke-cluster
+      - name: pre-existing-network-storage
+        location: modules/file-system/pre-existing-network-storage
+      - name: pre-existing-subnetwork
+        location: modules/network/pre-existing-subnetwork
+      - name: pre-existing-vpc
+        location: modules/network/pre-existing-vpc
+      - name: private-service-access
+        location: modules/network/private-service-access
+      - name: ramble-execute
+        location: modules/scripts/ramble-execute
+      - name: ramble-setup
+        location: modules/scripts/ramble-setup
+      - name: resource-policy
+        location: modules/compute/resource-policy
+      - name: schedmd-slurm-gcp-v5-controller
+        location: modules/scheduler/schedmd-slurm-gcp-v5-controller
+      - name: schedmd-slurm-gcp-v5-hybrid
+        location: modules/scheduler/schedmd-slurm-gcp-v5-hybrid
+      - name: schedmd-slurm-gcp-v5-login
+        location: modules/scheduler/schedmd-slurm-gcp-v5-login
+      - name: schedmd-slurm-gcp-v5-node-group
+        location: modules/compute/schedmd-slurm-gcp-v5-node-group
+      - name: schedmd-slurm-gcp-v5-partition
+        location: modules/compute/schedmd-slurm-gcp-v5-partition
+      - name: schedmd-slurm-gcp-v5-partition-dynamic
+        location: modules/compute/schedmd-slurm-gcp-v5-partition-dynamic
+      - name: schedmd-slurm-gcp-v6-controller
+        location: modules/scheduler/schedmd-slurm-gcp-v6-controller
+      - name: schedmd-slurm-gcp-v6-login
+        location: modules/scheduler/schedmd-slurm-gcp-v6-login
+      - name: schedmd-slurm-gcp-v6-nodeset
+        location: modules/compute/schedmd-slurm-gcp-v6-nodeset
+      - name: schedmd-slurm-gcp-v6-nodeset-dynamic
+        location: modules/compute/schedmd-slurm-gcp-v6-nodeset-dynamic
+      - name: schedmd-slurm-gcp-v6-nodeset-tpu
+        location: modules/compute/schedmd-slurm-gcp-v6-nodeset-tpu
+      - name: schedmd-slurm-gcp-v6-partition
+        location: modules/compute/schedmd-slurm-gcp-v6-partition
+      - name: service-account
+        location: modules/project/service-account
+      - name: service-enablement
+        location: modules/project/service-enablement
+      - name: slurm-cloudsql-federation
+        location: modules/database/slurm-cloudsql-federation
+      - name: spack-execute
+        location: modules/scripts/spack-execute
+      - name: spack-setup
+        location: modules/scripts/spack-setup
+      - name: startup-script
+        location: modules/scripts/startup-script
+      - name: topic
+        location: modules/pubsub/topic
+      - name: vm-instance
+        location: modules/compute/vm-instance
+      - name: vpc
+        location: modules/network/vpc
+      - name: wait-for-startup
+        location: modules/scripts/wait-for-startup
+      - name: windows-startup-script
+        location: modules/scripts/windows-startup-script
+    examples:
+      - name: simple_example
+        location: examples/simple_example
+  interfaces:
+    variables:
+      - name: goog_cm_deployment_name
+        description: The name of the deployment and VM instance.
+        varType: string
+        required: true
+      - name: authorized_cidr
+        description: "Toolkit deployment variable: authorized_cidr"
+        varType: string
+        defaultValue: 0.0.0.0/0
+      - name: reservation
+        description: "Toolkit deployment variable: reservation"
+        varType: string
+        required: true
+      - name: reservation_block
+        description: "Toolkit deployment variable: reservation_block"
+        varType: string
+        required: true
+      - name: labels
+        description: "Toolkit deployment variable: labels"
+        varType: any
+        defaultValue: {}
+      - name: project_id
+        description: "Toolkit deployment variable: project_id"
+        varType: string
+        defaultValue: ""
+      - name: a3_mega_zone
+        description: "Toolkit deployment variable: a3_mega_zone"
+        varType: string
+        required: true
+      - name: a3_ultra_zone
+        description: "Toolkit deployment variable: a3_ultra_zone"
+        varType: string
+        required: true
+      - name: node_count_gke
+        description: "Toolkit deployment variable: node_count_gke"
+        varType: number
+        required: true
+      - name: node_count_gke_nccl
+        description: "Toolkit deployment variable: node_count_gke_nccl"
+        varType: number
+        required: true
+      - name: node_count_llama_3_7b
+        description: "Toolkit deployment variable: node_count_llama_3_7b"
+        varType: number
+        required: true
+      - name: node_count_llama_3_70b
+        description: "Toolkit deployment variable: node_count_llama_3_70b"
+        varType: number
+        required: true
+      - name: placement_policy_name
+        description: "Toolkit deployment variable: placement_policy_name"
+        varType: string
+        required: true
+      - name: recipe
+        description: "Toolkit deployment variable: recipe"
+        varType: string
+        required: true
+      - name: gpu_type
+        description: "Toolkit deployment variable: gpu_type"
+        varType: string
+        required: true
+    outputs:
+      - name: gke_cluster
+        description: Link to GKE cluster
+      - name: result_bucket
+        description: Link to result GCS bucket
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/owner
+    services:
+      - cloudresourcemanager.googleapis.com
+      - storage-api.googleapis.com
+      - serviceusage.googleapis.com
+    providerVersions:
+      - source: gavinbunney/kubectl
+        version: ">= 1.7.0"
+      - source: hashicorp/google
+        version: ~> 6.14.0
+      - source: hashicorp/google-beta
+        version: ~> 6.14.0
+      - source: hashicorp/http
+        version: ~> 3.0
+      - source: hashicorp/kubernetes
+        version: ~> 2.23
